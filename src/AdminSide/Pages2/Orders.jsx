@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FiPackage } from "react-icons/fi";
-import axios from "axios"; 
+import { getUsers, updateUser } from "../../api/userApi.js";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -14,7 +14,7 @@ const Orders = () => {
  
   const fetchRealOrders = async () => {
     try {
-      const usersRes = await axios.get("http://localhost:3000/users"); 
+      const usersRes = await getUsers();
       const users = usersRes.data;
 
       const realOrders = users
@@ -40,7 +40,7 @@ const Orders = () => {
     }
   };
 
-  // Update UI + DB (axios version)
+  // Update UI + DB 
   const updateOrderStatus = async (orderId, newStatus) => {
     // update UI immediately before DB request
     setOrders((prev) =>
@@ -50,7 +50,7 @@ const Orders = () => {
     );
 
     try {
-      const usersRes = await axios.get("http://localhost:3000/users"); 
+      const usersRes = await getUsers();
       const users = usersRes.data;
 
       const user = users.find((u) =>
@@ -63,9 +63,7 @@ const Orders = () => {
         ord.id === orderId ? { ...ord, status: newStatus } : ord
       );
 
-      await axios.patch(`http://localhost:3000/users/${user.id}`, { 
-        order: updatedOrders,
-      });
+      await updateUser(user.id, { order: updatedOrders });
 
       console.log("Status updated in DB");
     } catch (error) {

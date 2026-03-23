@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FiPlus, FiShoppingBag } from 'react-icons/fi';
-import axios from "axios"; 
+import {
+  getProducts,
+  deleteProductApi,
+  addProduct,
+  updateProduct
+} from "../../api/productApi.js";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -16,7 +21,7 @@ const Products = () => {
   // GET PRODUCTS
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/ornaments'); 
+      const response = await getProducts(); 
       setProducts(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -29,7 +34,7 @@ const Products = () => {
   const deleteProduct = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        await axios.delete(`http://localhost:3000/ornaments/${id}`); 
+        await deleteProductApi(id);
         fetchProducts();
       } catch (error) {
         console.error('Error deleting product:', error);
@@ -58,15 +63,12 @@ const Products = () => {
 
     try {
       if (editingProduct) {
-        await axios.put(
-          `http://localhost:3000/ornaments/${editingProduct.id}`,
-          { ...editingProduct, ...productData } 
-        );
+        await updateProduct(editingProduct.id, {
+          ...editingProduct,
+          ...productData
+        });
       } else {
-        await axios.post(
-          'http://localhost:3000/ornaments',
-          productData 
-        );
+        await addProduct(productData);
       }
 
       setShowAddForm(false);

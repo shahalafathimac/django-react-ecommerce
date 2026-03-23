@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import { getUsers } from "../api/userApi.js";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -22,7 +22,7 @@ function Login() {
 
     try {
       // Fetch users from json-server
-      const res = await axios.get("http://localhost:3000/users");
+      const res = await getUsers();
       const users = res.data || [];
 
       // Find user
@@ -43,7 +43,13 @@ function Login() {
         //  END OF ACTIVE CHECK 
 
         // Save to localStorage
-        localStorage.setItem("loggedInUser", JSON.stringify(validUser));
+        // always store fresh user from DB
+      const freshUser = {
+        ...validUser,
+        role: validUser.role || "user"
+      };
+
+      localStorage.setItem("loggedInUser", JSON.stringify(freshUser));
 
         setLoading(false);
 

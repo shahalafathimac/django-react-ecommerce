@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { getUsers, createUser } from "../api/userApi.js";
 
 function SignUp() {
   const [user, setUser] = useState({ name: "", email: "", password: "" ,address:{}, cart:[],order:[],role:"user"});
@@ -16,7 +16,7 @@ function SignUp() {
 
     try {
      
-      const response = await axios.get("http://localhost:3000/ornaments");
+      const response = await getUsers();
       const users = response.data;
 
      
@@ -27,7 +27,7 @@ function SignUp() {
       }
 
       
-      await axios.post("http://localhost:3000/users", user);
+      await createUser(user);
 
       alert("Signup successful! You can login now.");
       navigate("/login");

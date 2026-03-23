@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { FiUsers, FiTrash2, FiUserX, FiUserCheck, FiAlertTriangle } from 'react-icons/fi';
 import toast, { Toaster } from "react-hot-toast";
-import axios from "axios"; 
+import {
+  getUsers,
+  deleteUserApi,
+  updateUserStatus,
+} from "../../api/userApi.js";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -15,7 +19,7 @@ const Users = () => {
   
   const fetchUsers = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/users'); 
+      const response = await getUsers();
       setUsers(response.data);
     } catch (error) {
       toast.error(<span className="flex items-center gap-2"><FiAlertTriangle /> Failed to fetch users</span>);
@@ -29,7 +33,7 @@ const Users = () => {
   const deleteUser = async (id) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
-        await axios.delete(`http://localhost:3000/users/${id}`); 
+        await deleteUserApi(id);
         toast.success(<span className="flex items-center gap-2"><FiTrash2 /> User deleted successfully</span>);
         fetchUsers();
       } catch (error) {
@@ -42,9 +46,7 @@ const Users = () => {
   // Toggle Active / Inactive 
   const toggleUserStatus = async (user) => {
     try {
-      await axios.patch(`http://localhost:3000/users/${user.id}`, { 
-        active: !user.active
-      });
+      await updateUserStatus(user.id, !user.active);
 
       toast.success(
         <span className="flex items-center gap-2">
@@ -60,19 +62,19 @@ const Users = () => {
     }
   };
 
-  const filteredUsers = users
-    .filter((user) => {
-      const term = search.toLowerCase();
-      return (
-        user.name?.toLowerCase().includes(term) ||
-        user.email?.toLowerCase().includes(term) ||
-        user.role?.toLowerCase().includes(term) ||
-        (user.active ? "active" : "inactive").includes(term) ||
-        user.id.toString().includes(term) ||
-        user.joinDate?.toLowerCase().includes(term)
-      );
-    })
-    .reverse();
+    const filteredUsers = users
+  .filter((user) => user.role === "user") 
+  .filter((user) => {
+    const term = search.toLowerCase();
+    return (
+      user.name?.toLowerCase().includes(term) ||
+      user.email?.toLowerCase().includes(term) ||
+      (user.active ? "active" : "inactive").includes(term) ||
+      user.id.toString().includes(term) ||
+      user.joinDate?.toLowerCase().includes(term)
+    );
+  })
+  .reverse();
 
   if (loading) {
     return (
@@ -110,7 +112,6 @@ const Users = () => {
               <tr>
                 <th className="px-6 py-3">User</th>
                 <th className="px-6 py-3">Email</th>
-                <th className="px-6 py-3">Role</th>
                 <th className="px-6 py-3">Status</th>
                 <th className="px-6 py-3">Actions</th>
               </tr>
@@ -136,11 +137,7 @@ const Users = () => {
 
                   <td className="px-6 py-4">{user.email || 'No email'}</td>
 
-                  <td className="px-6 py-4">
-                    <span className="px-2 text-xs font-semibold rounded-full bg-purple-100 text-purple-800">
-                      {user.role || 'Customer'}
-                    </span>
-                  </td>
+                
 
                   <td className="px-6 py-4">
                     <span className={`px-2 text-xs font-semibold rounded-full ${

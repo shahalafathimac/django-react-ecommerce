@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { getUserById, updateUser } from "../api/userApi.js";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { FiSmile, FiPackage, FiCheck, FiXCircle } from "react-icons/fi";
@@ -31,7 +31,7 @@ console.log(orders.reverse())
           return;
         }
 
-        const res = await axios.get(`http://localhost:3000/users/${storedUser.id}`);
+        const res = await getUserById(storedUser.id);
         const userData = res.data;
 
         setUser(userData);
@@ -74,9 +74,7 @@ console.log(orders.reverse())
 
   const saveAddress = async () => {
     try {
-      await axios.patch(`http://localhost:3000/users/${user.id}`, {
-        address: address,
-      });
+      await updateUser(user.id, { address });
       toast.success("Address updated successfully!");
     } catch (err) {
       toast.error("Unable to save address.");
@@ -105,7 +103,7 @@ console.log(orders.reverse())
       );
 
       // Fetch latest user data
-      const res = await axios.get(`http://localhost:3000/users/${storedUser.id}`);
+      const res = await getUserById(storedUser.id);
       const userData = res.data;
 
       const existingOrders = userData.order || userData.orders || [];
@@ -118,7 +116,7 @@ console.log(orders.reverse())
       if (userData.order !== undefined) payload.order = updatedOrders;
       else payload.orders = updatedOrders;
 
-      await axios.patch(`http://localhost:3000/users/${storedUser.id}`, payload);
+      await updateUser(storedUser.id, payload);
 
       toast.success("Order cancelled successfully!");
     } catch (error) {

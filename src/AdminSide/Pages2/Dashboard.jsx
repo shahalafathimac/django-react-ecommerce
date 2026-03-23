@@ -52,9 +52,13 @@ const Dashboard = () => {
       const totalOrders = allOrders.length;
 
       const totalRevenue = allOrders.reduce(
-        (sum, order) => sum + (order.totalAmount || 0),
-        0
-      );
+          (sum, order) =>
+            order.status?.toLowerCase() !== "cancelled"
+              ? sum + (order.totalAmount || 0)
+              : sum,
+          0
+        );
+
 
       const statusCounts = {
         placed: 0,
@@ -385,3 +389,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+

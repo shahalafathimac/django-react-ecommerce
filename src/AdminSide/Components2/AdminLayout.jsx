@@ -14,13 +14,8 @@ const AdminLayout = () => {
 
   return (
     <div>
-      {/* Sidebar */}
       <Sidebar setSidebarOpen={setSidebarOpen} />
-
-      {/* Navbar */}
       <Navbar isOpen={sidebarOpen} />
-
-      {/* CONTENT AREA */}
       <div
         className={`transition-all duration-300 pt-24 px-6 ${
           sidebarOpen ? "pl-64" : "pl-20"
@@ -43,12 +38,11 @@ const Sidebar = ({ setSidebarOpen }) => {
     setSidebarOpen(newState);
   };
 
-  /* React Icons */
   const menuItems = [
     { path: "/admin/dashboard", icon: <FiBarChart2 size={20} />, label: "Dashboard" },
-    { path: "/admin/orders", icon: <FiPackage size={20} />, label: "Orders" },
-    { path: "/admin/products", icon: <FiShoppingBag size={20} />, label: "Products" },
-    { path: "/admin/users", icon: <FiUsers size={20} />, label: "Users" },
+    { path: "/admin/orders",    icon: <FiPackage size={20} />,   label: "Orders"    },
+    { path: "/admin/products",  icon: <FiShoppingBag size={20} />, label: "Products"},
+    { path: "/admin/users",     icon: <FiUsers size={20} />,     label: "Users"     },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -59,15 +53,12 @@ const Sidebar = ({ setSidebarOpen }) => {
         isOpen ? "w-64" : "w-20"
       }`}
     >
-      {/* Sidebar Header */}
       <div className="p-4 flex items-center justify-between">
         {isOpen && (
           <h1 className="text-lg font-bold whitespace-nowrap">
             Orovia Ornaments
           </h1>
         )}
-
-        {/* Menu Button */}
         <button
           onClick={toggleSidebar}
           className="p-2 rounded-md hover:bg-gray-700 transition"
@@ -76,7 +67,6 @@ const Sidebar = ({ setSidebarOpen }) => {
         </button>
       </div>
 
-      {/* Navigation */}
       {isOpen && (
         <nav className="mt-4">
           {menuItems.map((item) => (
@@ -102,19 +92,21 @@ const Navbar = ({ isOpen }) => {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
+  const handleLogout = () => {
+    localStorage.removeItem("loggedInUser");
+    navigate("/login", { replace: true });
+  };
+
   return (
     <nav
       className={`bg-gray-800 text-white h-16 flex items-center px-6 border-b border-gray-700
         fixed top-0 left-0 right-0 z-40 transition-all duration-300
         ${isOpen ? "pl-64" : "pl-20"}`}
     >
-      {/* Left Title */}
       <h1 className="text-xl font-semibold">Admin Panel</h1>
 
-      {/* Right Profile */}
       <div className="ml-auto relative">
-        {/* drop down open */}
-        <button onClick={() => setIsProfileOpen(!isProfileOpen)}> 
+        <button onClick={() => setIsProfileOpen(!isProfileOpen)}>
           <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center">
             <span className="text-white">A</span>
           </div>
@@ -122,8 +114,9 @@ const Navbar = ({ isOpen }) => {
 
         {isProfileOpen && (
           <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow-lg border">
+            {/* ✅ was: onClick={() => navigate("/login")} — didn't clear localStorage */}
             <button
-              onClick={() => navigate("/login")}
+              onClick={handleLogout}
               className="px-4 py-2 text-sm text-red-600 w-full text-left hover:bg-gray-200"
             >
               Logout

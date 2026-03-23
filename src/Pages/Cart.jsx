@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getUserById, updateUser } from "../api/userApi.js";
 import { useNavigate } from "react-router-dom";
 import { FiShoppingCart, FiFrown, FiX } from "react-icons/fi";
 
@@ -19,7 +19,7 @@ function Cart() {
           return;
         }
 
-        const res = await axios.get(`http://localhost:3000/users/${storedUser.id}`);
+        const res = await getUserById(storedUser.id);
         const userCart = res.data.cart || [];
         setCartItems(userCart);
       } catch (err) {
@@ -39,9 +39,7 @@ function Cart() {
       setCartItems(updatedCart);
 
       const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-      await axios.patch(`http://localhost:3000/users/${storedUser.id}`, {
-        cart: updatedCart,
-      });
+      await updateUser(storedUser.id, { cart: updatedCart });
     } catch (error) {
       console.error("Error removing item:", error);
     }
@@ -57,9 +55,7 @@ function Cart() {
       setCartItems(updatedCart);
 
       const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-      await axios.patch(`http://localhost:3000/users/${storedUser.id}`, {
-        cart: updatedCart,
-      });
+      await updateUser(storedUser.id, { cart: updatedCart });
     } catch (error) {
       console.error("Error updating quantity:", error);
     }

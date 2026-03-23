@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getUserById, updateUser } from "../api/userApi.js";
 import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import { FiAlertTriangle, FiCheckCircle, FiXCircle, FiFrown } from "react-icons/fi";
@@ -33,7 +33,7 @@ function Checkout() {
           return;
         }
 
-        const res = await axios.get(`http://localhost:3000/users/${storedUser.id}`);
+        const res = await getUserById(storedUser.id);
         const userData = res.data;
         setUserData(userData);
 
@@ -117,14 +117,12 @@ function Checkout() {
 
       let currentUser = userData;
       if (!currentUser) {
-        const res = await axios.get(`http://localhost:3000/users/${storedUser.id}`);
+        const res = await getUserById(storedUser.id);
         currentUser = res.data;
       }
 
       if (saveAddress) {
-        await axios.patch(`http://localhost:3000/users/${storedUser.id}`, {
-          address: shippingInfo,
-        });
+        await updateUser(storedUser.id, { address: shippingInfo });
       }
 
       let existingOrders = currentUser.order || currentUser.orders || [];
@@ -135,7 +133,7 @@ function Checkout() {
         ? (updatePayload.order = updatedOrders)
         : (updatePayload.orders = updatedOrders);
 
-      await axios.patch(`http://localhost:3000/users/${storedUser.id}`, updatePayload);
+      await updateUser(storedUser.id, updatePayload);
 
       localStorage.removeItem("userCart");
       localStorage.removeItem("singleBuyItem");

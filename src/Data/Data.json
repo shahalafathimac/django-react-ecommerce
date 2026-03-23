@@ -178,7 +178,7 @@
       "price": 849,
       "description": "Royal ring design inspired by traditional Indian motifs.",
       "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUdEvWSwQ--M0qgahAJqBgIQFhuSa7p_ypsw&s",
-      "stock": 22
+      "stock": 20
     },
     {
       "id": "21",
@@ -199,45 +199,6 @@
       "description": "Traditional gold beaded chain with smooth finish.",
       "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ-2Rb6BpM8NSjlg8bOBXAOSsHDb5pc1S2tGg&s",
       "stock": 14
-    },
-    {
-      "id": "23",
-      "name": "Mirror Work Bangles",
-      "category": "Bangle",
-      "type": "Antique Finish",
-      "price": 799,
-      "description": "Stylish mirror work bangles that add sparkle to your look.",
-      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTmmAv1SZPaZ2yoCHuyeS9YHklDJy2KSBtHdw&s",
-      "stock": 45
-    },
-    {
-      "id": "24",
-      "name": "Leaf Design Earrings",
-      "category": "Earring",
-      "type": "Silver Plated",
-      "price": 499,
-      "description": "Lightweight leaf design earrings for a chic style.",
-      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlrYxxLUCorqcdyrFHzWBiEGRu6dmShwQj7Q&s",
-      "stock": 17
-    },
-    {
-      "id": "25",
-      "name": "Stone Studded Ring",
-      "category": "Ring",
-      "type": "Gold Finish",
-      "price": 649,
-      "description": "Gorgeous ring with colorful stones for festive occasions.",
-      "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQnj6a9c05QJihaTJwZieIMnG6frVXhcWmHag&s",
-      "stock": 32
-    },
-    {
-      "id": "4531",
-      "name": "gold ring",
-      "category": "Ring",
-      "price": 699,
-      "stock": 25,
-      "description": "nice product",
-      "image": "data:image/jpeg;base64,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"
     }
   ],
   "users": [
@@ -246,18 +207,43 @@
       "name": "admin",
       "email": "admin@gmail.com",
       "password": "12",
-      "address": {},
-      "cart": [
+      "address": {
+        "name": "admin",
+        "address": "sdfgh",
+        "city": "Calicut",
+        "state": "kerala",
+        "zip": "23435467",
+        "phone": "123456"
+      },
+      "cart": [],
+      "order": [
         {
-          "id": "4",
-          "name": "Traditional Temple Chain",
-          "price": 899,
-          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3fblSoJzNfzROsHz6w_sTMDkpY_3jpSfulw&s",
-          "quantity": 1
+          "id": 1764241745045,
+          "userId": "af21",
+          "items": [
+            {
+              "id": "4",
+              "name": "Traditional Temple Chain",
+              "price": 899,
+              "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3fblSoJzNfzROsHz6w_sTMDkpY_3jpSfulw&s",
+              "quantity": 1
+            }
+          ],
+          "totalAmount": 949,
+          "shippingInfo": {
+            "name": "admin",
+            "address": "sdfgh",
+            "city": "Calicut",
+            "state": "kerala",
+            "zip": "23435467",
+            "phone": "123456"
+          },
+          "paymentMethod": "card",
+          "orderDate": "11/27/2025, 4:39:05 PM",
+          "status": "Placed"
         }
       ],
-      "order": [],
-      "role": "admin",
+      "role": "user",
       "active": true
     },
     {
@@ -1030,6 +1016,81 @@
           "paymentMethod": "card",
           "orderDate": "11/22/2025, 3:28:55 PM",
           "status": "Placed"
+        },
+        {
+          "id": 1763954991243,
+          "userId": "4683",
+          "items": [
+            {
+              "id": "6",
+              "name": "Classic Gold Bangle Set",
+              "price": 999,
+              "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ78TgwP1o6NHhhPQaqpMFlCAadw-JDJGKIyQ&s",
+              "quantity": 1
+            }
+          ],
+          "totalAmount": 1049,
+          "shippingInfo": {
+            "name": "anas",
+            "address": "sdfgh",
+            "city": "wertyuhj",
+            "state": "turdr",
+            "zip": "gfhjnm,",
+            "phone": "123456"
+          },
+          "paymentMethod": "card",
+          "orderDate": "11/24/2025, 8:59:51 AM",
+          "status": "Delivered"
+        },
+        {
+          "id": 1763974785983,
+          "userId": "4683",
+          "items": [
+            {
+              "id": "4",
+              "name": "Traditional Temple Chain",
+              "price": 899,
+              "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3fblSoJzNfzROsHz6w_sTMDkpY_3jpSfulw&s",
+              "quantity": 1
+            }
+          ],
+          "totalAmount": 949,
+          "shippingInfo": {
+            "name": "anas",
+            "address": "sdfgh",
+            "city": "wertyuhj",
+            "state": "turdr",
+            "zip": "gfhjnm,",
+            "phone": "123456"
+          },
+          "paymentMethod": "card",
+          "orderDate": "11/24/2025, 2:29:45 PM",
+          "status": "Placed"
+        },
+        {
+          "id": 1763975161185,
+          "userId": "4683",
+          "items": [
+            {
+              "id": "6",
+              "name": "Classic Gold Bangle Set",
+              "price": 999,
+              "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ78TgwP1o6NHhhPQaqpMFlCAadw-JDJGKIyQ&s",
+              "quantity": 1
+            }
+          ],
+          "totalAmount": 1049,
+          "shippingInfo": {
+            "name": "anas",
+            "address": "sdfgh",
+            "city": "wertyuhj",
+            "state": "turdr",
+            "zip": "gfhjnm,",
+            "phone": "123456"
+          },
+          "paymentMethod": "card",
+          "orderDate": "11/24/2025, 2:36:01 PM",
+          "status": "Placed"
         }
       ],
       "role": "user",
@@ -1081,11 +1142,58 @@
           },
           "paymentMethod": "card",
           "orderDate": "11/22/2025, 12:50:59 PM",
-          "status": "Cancelled"
+          "status": "Processing"
         }
       ],
       "role": "user",
       "active": false
+    },
+    {
+      "id": "73a3",
+      "name": "admin1",
+      "email": "admin1@gmail.com",
+      "password": "123",
+      "address": {},
+      "cart": [],
+      "order": [],
+      "role": "admin",
+      "active": true
+    },
+    {
+      "id": "782b",
+      "name": "fathima shahala",
+      "email": "shahalafathima213@gmail.com",
+      "password": "12345",
+      "address": {
+        "name": "fathima shahala",
+        "address": "chenayingal",
+        "city": "Calicut",
+        "state": "kerala",
+        "zip": "673014",
+        "phone": "126342784"
+      },
+      "cart": [
+        {
+          "id": "5",
+          "name": "Crystal Layered Necklace",
+          "price": 749,
+          "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRm-yvUyJT-8X2k0sjs3ar6E1zsyASmEXdpfA&s",
+          "quantity": 1
+        }
+      ],
+      "order": [],
+      "role": "user",
+      "active": false
+    },
+    {
+      "id": "89a2",
+      "name": "fathima shahala",
+      "email": "shahalafathima213@gmail.com",
+      "password": "shahala@213",
+      "address": {},
+      "cart": [],
+      "order": [],
+      "role": "user"
     }
   ]
 }
