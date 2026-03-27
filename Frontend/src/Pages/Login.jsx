@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { getUsers } from "../api/userApi.js";
+import React, { useContext, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+import { getApiErrorMessage } from "../api/apiError";
+import { UserContext } from "../UserContext";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -8,6 +10,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
+  const { login } = useContext(UserContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -21,54 +24,20 @@ function Login() {
     setLoading(true);
 
     try {
-      // Fetch users from json-server
-      const res = await getUsers();
-      const users = res.data || [];
+      const user = await login({
+        email: email.trim(),
+        password,
+      });
 
-      // Find user
-      const validUser = users.find(
-        (u) => u.email === email.trim() && u.password === password
-      );
-
-      console.log(validUser);
-
-      if (validUser) {
-
-        //  ADDED ACTIVE CHECK HERE 
-        if (validUser.active === false) {
-          setLoading(false);
-          setErrorMsg("Your account is inactive. Please contact admin.");
-          return;
-        }
-        //  END OF ACTIVE CHECK 
-
-        // Save to localStorage
-        // always store fresh user from DB
-      const freshUser = {
-        ...validUser,
-        role: validUser.role || "user"
-      };
-
-      localStorage.setItem("loggedInUser", JSON.stringify(freshUser));
-
-        setLoading(false);
-
-        // Check admin condition
-        if (validUser.role === "admin") {
-          console.log(validUser.role)
-          navigate("/admin/dashboard"); // Go to admin dashboard
-        } else {
-          navigate("/"); // Normal user goes home
-        }
-
+      if (user.role === "admin") {
+        navigate("/admin/dashboard");
       } else {
-        setLoading(false);
-        setErrorMsg("Invalid email or password.");
+        navigate("/");
       }
     } catch (err) {
-      console.error("Login error:", err);
+      setErrorMsg(getApiErrorMessage(err, "Unable to sign in right now. Please try again."));
+    } finally {
       setLoading(false);
-      setErrorMsg("Unable to contact server. Try again later.");
     }
   };
 

@@ -1,11 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { FiUsers, FiTrash2, FiUserX, FiUserCheck, FiAlertTriangle } from 'react-icons/fi';
-import toast, { Toaster } from "react-hot-toast";
-import {
-  getUsers,
-  deleteUserApi,
-  updateUserStatus,
-} from "../../api/userApi.js";
+import React, { useEffect, useState } from "react";
+import { FiUsers } from "react-icons/fi";
+import toast from "react-hot-toast";
+
+import { getApiErrorMessage } from "../../api/apiError.js";
+import { deleteUserApi, getUsers, updateUserStatus } from "../../api/userApi.js";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -16,65 +14,52 @@ const Users = () => {
     fetchUsers();
   }, []);
 
-  
   const fetchUsers = async () => {
     try {
       const response = await getUsers();
       setUsers(response.data);
     } catch (error) {
-      toast.error(<span className="flex items-center gap-2"><FiAlertTriangle /> Failed to fetch users</span>);
-      console.error('Error fetching users:', error);
+      toast.error(getApiErrorMessage(error, "Failed to fetch users."));
     } finally {
       setLoading(false);
     }
   };
 
-  //  Delete user 
   const deleteUser = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await deleteUserApi(id);
-        toast.success(<span className="flex items-center gap-2"><FiTrash2 /> User deleted successfully</span>);
-        fetchUsers();
-      } catch (error) {
-        toast.error(<span className="flex items-center gap-2"><FiAlertTriangle /> Failed to delete user</span>);
-        console.error('Error deleting user:', error);
-      }
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
+
+    try {
+      await deleteUserApi(id);
+      toast.success("User deleted successfully.");
+      fetchUsers();
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Failed to delete user."));
     }
   };
 
-  // Toggle Active / Inactive 
   const toggleUserStatus = async (user) => {
     try {
       await updateUserStatus(user.id, !user.active);
-
-      toast.success(
-        <span className="flex items-center gap-2">
-          {user.active ? <FiUserX /> : <FiUserCheck />}
-          {user.active ? "User deactivated" : "User activated"}
-        </span>
-      );
-
+      toast.success(user.active ? "User deactivated." : "User activated.");
       fetchUsers();
     } catch (error) {
-      toast.error(<span className="flex items-center gap-2"><FiAlertTriangle /> Failed to update status</span>);
-      console.error('Error updating user:', error);
+      toast.error(getApiErrorMessage(error, "Failed to update status."));
     }
   };
 
-    const filteredUsers = users
-  .filter((user) => user.role === "user") 
-  .filter((user) => {
-    const term = search.toLowerCase();
-    return (
-      user.name?.toLowerCase().includes(term) ||
-      user.email?.toLowerCase().includes(term) ||
-      (user.active ? "active" : "inactive").includes(term) ||
-      user.id.toString().includes(term) ||
-      user.joinDate?.toLowerCase().includes(term)
-    );
-  })
-  .reverse();
+  const filteredUsers = [...users]
+    .filter((user) => user.role === "user")
+    .filter((user) => {
+      const term = search.toLowerCase();
+      return (
+        user.name?.toLowerCase().includes(term) ||
+        user.email?.toLowerCase().includes(term) ||
+        (user.active ? "active" : "inactive").includes(term) ||
+        user.id.toString().includes(term) ||
+        user.date_joined?.toLowerCase().includes(term)
+      );
+    })
+    .reverse();
 
   if (loading) {
     return (
@@ -86,9 +71,6 @@ const Users = () => {
 
   return (
     <div className="p-6">
-      <Toaster position="top-right" />
-
-      {/* Header + Search */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Users Management</h1>
 
@@ -120,30 +102,29 @@ const Users = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50">
-
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-blue-600 font-medium">
-                          {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                          {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                         </span>
                       </div>
                       <div className="ml-4">
-                        <p className="font-medium">{user.name || 'Unknown User'}</p>
+                        <p className="font-medium">{user.name || "Unknown User"}</p>
                         <p className="text-gray-500 text-sm">User ID: {user.id}</p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-6 py-4">{user.email || 'No email'}</td>
-
-                
+                  <td className="px-6 py-4">{user.email || "No email"}</td>
 
                   <td className="px-6 py-4">
-                    <span className={`px-2 text-xs font-semibold rounded-full ${
-                      user.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {user.active ? 'Active' : 'Inactive'}
+                    <span
+                      className={`px-2 text-xs font-semibold rounded-full ${
+                        user.active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {user.active ? "Active" : "Inactive"}
                     </span>
                   </td>
 
@@ -151,10 +132,12 @@ const Users = () => {
                     <button
                       onClick={() => toggleUserStatus(user)}
                       className={`mr-3 ${
-                        user.active ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'
+                        user.active
+                          ? "text-yellow-600 hover:text-yellow-900"
+                          : "text-green-600 hover:text-green-900"
                       }`}
                     >
-                      {user.active ? 'Deactivate' : 'Activate'}
+                      {user.active ? "Deactivate" : "Activate"}
                     </button>
 
                     <button
@@ -164,7 +147,6 @@ const Users = () => {
                       Delete
                     </button>
                   </td>
-
                 </tr>
               ))}
             </tbody>

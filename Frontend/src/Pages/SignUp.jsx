@@ -1,11 +1,14 @@
-
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getUsers, createUser } from "../api/userApi.js";
+
+import { getApiErrorMessage } from "../api/apiError";
+import { UserContext } from "../UserContext";
 
 function SignUp() {
-  const [user, setUser] = useState({ name: "", email: "", password: "" ,address:{}, cart:[],order:[],role:"user"});
+  const [user, setUser] = useState({ name: "", email: "", password: "" });
+  const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
+  const { register } = useContext(UserContext);
 
   const handleChange = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
@@ -13,27 +16,13 @@ function SignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
 
     try {
-     
-      const response = await getUsers();
-      const users = response.data;
-
-     
-      const exist = users.find((u) => u.email === user.email);
-      if (exist) {
-        alert("User already exists!");
-        return;
-      }
-
-      
-      await createUser(user);
-
-      alert("Signup successful! You can login now.");
-      navigate("/login");
+      await register(user);
+      navigate("/");
     } catch (error) {
-      console.error("Error during signup:", error);
-      alert("Something went wrong. Please try again.");
+      setErrorMessage(getApiErrorMessage(error, "Something went wrong. Please try again."));
     }
   };
 
@@ -41,6 +30,13 @@ function SignUp() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Sign Up</h2>
+
+        {errorMessage && (
+          <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded">
+            {errorMessage}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700 mb-1">Name</label>
@@ -88,7 +84,7 @@ function SignUp() {
 
         <p className="mt-4 text-center text-gray-600">
           Already have an account?{" "}
-          <span 
+          <span
             className="text-yellow-500 font-semibold cursor-pointer hover:underline"
             onClick={() => navigate("/login")}
           >
@@ -101,5 +97,3 @@ function SignUp() {
 }
 
 export default SignUp;
-
-

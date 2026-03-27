@@ -1,5 +1,7 @@
-import React, { createContext, useState, useEffect } from "react";
-import axios from "axios";
+import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
+
+import { getCart } from "./api/cartApi";
+import { getProfile, loginUser, logoutUser, registerUser } from "./api/userApi";
 
 export const UserContext = createContext();
 
@@ -8,51 +10,91 @@ export const UserProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch user & cart from localStorage + JSON Server
-  useEffect(() => {
-    const fetchUserAndCart = async () => {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        if (storedUser) {
-          setUser(storedUser);
-          const res = await axios.get(`http://localhost:3000/users/${storedUser.id}`);
-          const cartData = res.data.cart || [];
-          setCartItems(cartData);
-          localStorage.setItem("userCart", JSON.stringify(cartData));
-        }
-      } catch (err) {
-        console.error("Error loading user/cart:", err);
-      } finally {
-        setLoading(false);
+  const refreshCart = useCallback(async () => {
+    try {
+      if (!user) {
+        setCartItems([]);
+        return [];
       }
-    };
-    fetchUserAndCart();
+      const cartResponse = await getCart();
+      const items = cartResponse.data.items || [];
+      setCartItems(items);
+      return items;
+    } catch {
+      setCartItems([]);
+      return [];
+    }
+  }, [user]);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const profileResponse = await getProfile();
+      setUser(profileResponse.data);
+      return profileResponse.data;
+    } catch {
+      setUser(null);
+      setCartItems([]);
+      return null;
+    }
   }, []);
 
-  // 🔹 Sync cart updates to both localStorage and JSON Server
-  const updateCart = async (newCart) => {
-    if (!user) return;
-    setCartItems(newCart);
-    localStorage.setItem("userCart", JSON.stringify(newCart));
+  useEffect(() => {
+    const bootstrap = async () => {
+      const currentUser = await refreshSession();
+      if (currentUser) {
+        await refreshCart();
+      }
+      setLoading(false);
+    };
 
+    bootstrap();
+  }, [refreshCart, refreshSession]);
+
+  const login = async (credentials) => {
+    const response = await loginUser(credentials);
+    setUser(response.data.user);
     try {
-      await axios.patch(`http://localhost:3000/users/${user.id}`, { cart: newCart });
-    } catch (err) {
-      console.error("Error updating cart:", err);
+      const cartResponse = await getCart();
+      setCartItems(cartResponse.data.items || []);
+    } catch {
+      setCartItems([]);
+    }
+    return response.data.user;
+  };
+
+  const register = async (payload) => {
+    const response = await registerUser(payload);
+    setUser(response.data.user);
+    setCartItems([]);
+    return response.data.user;
+  };
+
+  const logout = async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // Ignore network issues during logout and clear local state.
+    } finally {
+      setUser(null);
+      setCartItems([]);
     }
   };
 
-  return (
-    <UserContext.Provider
-      value={{
-        user,
-        cartItems,
-        setCartItems: updateCart,
-        loading,
-        setUser,
-      }}
-    >
-      {children}
-    </UserContext.Provider>
+  const value = useMemo(
+    () => ({
+      user,
+      setUser,
+      cartItems,
+      setCartItems,
+      loading,
+      refreshCart,
+      refreshSession,
+      login,
+      register,
+      logout,
+    }),
+    [user, cartItems, loading, refreshCart, refreshSession]
   );
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

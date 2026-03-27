@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { FiPackage } from "react-icons/fi";
-import { getUsers, updateUser } from "../../api/userApi.js";
+
+import { getApiErrorMessage } from "../../api/apiError.js";
+import { getAllOrders, updateOrderStatus } from "../../api/orderApi.js";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
@@ -11,38 +14,18 @@ const Orders = () => {
     fetchRealOrders();
   }, []);
 
- 
   const fetchRealOrders = async () => {
     try {
-      const usersRes = await getUsers();
-      const users = usersRes.data;
-
-      const realOrders = users
-        .filter((u) => u.order && u.order.length > 0)
-        .flatMap((user) =>
-          user.order.map((ord) => ({
-            id: ord.id,
-            userId: user.id,
-            userName: user.name,
-            userEmail: user.email,
-            items: ord.items,
-            total: ord.totalAmount,
-            status: ord.status || "Placed",
-            orderDate: ord.orderDate,
-          }))
-        );
-
-      setOrders(realOrders);
+      const ordersRes = await getAllOrders();
+      setOrders(ordersRes.data);
     } catch (error) {
-      console.error("Error loading orders:", error);
+      toast.error(getApiErrorMessage(error, "Error loading orders."));
     } finally {
       setLoading(false);
     }
   };
 
-  // Update UI + DB 
-  const updateOrderStatus = async (orderId, newStatus) => {
-    // update UI immediately before DB request
+  const handleOrderStatusChange = async (orderId, newStatus) => {
     setOrders((prev) =>
       prev.map((order) =>
         order.id === orderId ? { ...order, status: newStatus } : order
@@ -50,28 +33,16 @@ const Orders = () => {
     );
 
     try {
-      const usersRes = await getUsers();
-      const users = usersRes.data;
-
-      const user = users.find((u) =>
-        u.order?.some((ord) => ord.id === orderId)
+      const response = await updateOrderStatus(orderId, newStatus);
+      setOrders((prev) =>
+        prev.map((order) => (order.id === orderId ? response.data : order))
       );
-
-      if (!user) return;
-
-      const updatedOrders = user.order.map((ord) =>
-        ord.id === orderId ? { ...ord, status: newStatus } : ord
-      );
-
-      await updateUser(user.id, { order: updatedOrders });
-
-      console.log("Status updated in DB");
     } catch (error) {
-      console.error("Error updating status:", error);
+      toast.error(getApiErrorMessage(error, "Error updating status."));
+      fetchRealOrders();
     }
   };
 
-  // Status badge colors
   const getStatusColor = (status) => {
     const colors = {
       Placed: "bg-blue-100 text-blue-800",
@@ -84,20 +55,17 @@ const Orders = () => {
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
-  // Filter orders
-  const filteredOrders = orders
-    .filter((order) => {
-      const term = search.toLowerCase();
-      return (
-        order.id.toString().includes(term) ||
-        order.userName.toLowerCase().includes(term) ||
-        order.userEmail.toLowerCase().includes(term) ||
-        order.items.some((item) => item.name.toLowerCase().includes(term)) ||
-        order.status.toLowerCase().includes(term) ||
-        order.orderDate.toLowerCase().includes(term)
-      );
-    })
-    .reverse();
+  const filteredOrders = orders.filter((order) => {
+    const term = search.toLowerCase();
+    return (
+      order.id.toString().includes(term) ||
+      order.userName.toLowerCase().includes(term) ||
+      order.userEmail.toLowerCase().includes(term) ||
+      order.items.some((item) => item.name.toLowerCase().includes(term)) ||
+      order.status.toLowerCase().includes(term) ||
+      new Date(order.orderDate || order.created_at).toLocaleString().toLowerCase().includes(term)
+    );
+  });
 
   if (loading) {
     return (
@@ -109,7 +77,6 @@ const Orders = () => {
 
   return (
     <div className="p-6">
-      {/* Header + Search */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Orders Management</h1>
 
@@ -122,12 +89,10 @@ const Orders = () => {
         />
       </div>
 
-      {/* Orders Count */}
       <div className="text-sm text-gray-600 mb-3">
         Total Orders: <span className="font-bold">{filteredOrders.length}</span>
       </div>
 
-      {/* Orders Table */}
       <div className="bg-white rounded-lg shadow-md border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -155,27 +120,18 @@ const Orders = () => {
                   </td>
 
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {order.items.length} items
-                    </div>
+                    <div className="text-sm text-gray-900">{order.items.length} items</div>
                     <div className="text-sm text-gray-500">
-                      {order.items[0]?.name}{" "}
-                      {order.items.length > 1
-                        ? `+${order.items.length - 1} more`
-                        : ""}
+                      {order.items[0]?.name} {order.items.length > 1 ? `+${order.items.length - 1} more` : ""}
                     </div>
                   </td>
 
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    ₹{order.total}
-                  </td>
+                  <td className="px-6 py-4 font-medium text-gray-900">Rs. {order.totalAmount}</td>
 
                   <td className="px-6 py-4">
                     <select
                       value={order.status}
-                      onChange={(e) =>
-                        updateOrderStatus(order.id, e.target.value)
-                      }
+                      onChange={(e) => handleOrderStatusChange(order.id, e.target.value)}
                       className={`text-xs font-semibold rounded-full px-3 py-1 border-0 cursor-pointer ${getStatusColor(
                         order.status
                       )}`}
@@ -190,7 +146,7 @@ const Orders = () => {
                   </td>
 
                   <td className="px-6 py-4 text-gray-500 text-sm">
-                    {order.orderDate}
+                    {new Date(order.orderDate || order.created_at).toLocaleString()}
                   </td>
                 </tr>
               ))}
@@ -199,7 +155,6 @@ const Orders = () => {
         </div>
       </div>
 
-      {/* No Orders Found */}
       {filteredOrders.length === 0 && (
         <div className="text-center py-10">
           <FiPackage className="text-gray-400 text-6xl mx-auto mb-4" />

@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { getUserById, updateUser } from "../api/userApi.js";
-import { useNavigate } from "react-router-dom";
-import toast, { Toaster } from "react-hot-toast";
-import { FiAlertTriangle, FiCheckCircle, FiXCircle, FiFrown } from "react-icons/fi";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { FiAlertTriangle, FiCheckCircle, FiFrown, FiXCircle } from "react-icons/fi";
+
+import { getApiErrorMessage } from "../api/apiError";
+import { createOrder } from "../api/orderApi";
+import { UserContext } from "../UserContext";
 
 function Checkout() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState(null);
   const [shippingInfo, setShippingInfo] = useState({
     name: "",
     address: "",
@@ -17,62 +19,49 @@ function Checkout() {
     phone: "",
   });
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [paymentReference, setPaymentReference] = useState("");
   const [saveAddress, setSaveAddress] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user, setUser, refreshCart } = useContext(UserContext);
 
   useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        const urlParams = new URLSearchParams(window.location.search);
-        const isSingleBuy = urlParams.get("single");
-
-        if (!storedUser) {
-          toast.error("Please login first!");
-          navigate("/login");
-          return;
-        }
-
-        const res = await getUserById(storedUser.id);
-        const userData = res.data;
-        setUserData(userData);
-
-        if (isSingleBuy) {
-          const singleItem = JSON.parse(localStorage.getItem("singleBuyItem")) || [];
-          setCartItems(singleItem);
-        } else {
-          setCartItems(userData.cart || []);
-          localStorage.setItem("userCart", JSON.stringify(userData.cart || []));
-        }
-
-        if (userData.address) {
-          setShippingInfo({
-            name: userData.address.name || storedUser.name,
-            address: userData.address.address,
-            city: userData.address.city,
-            state: userData.address.state,
-            zip: userData.address.zip,
-            phone: userData.address.phone,
-          });
-        } else {
-          setShippingInfo((prev) => ({ ...prev, name: storedUser.name || "" }));
-        }
-      } catch {
-        toast.error("Failed to load cart");
-      } finally {
-        setLoading(false);
+    const fetchCheckoutData = async () => {
+      if (!user) {
+        navigate("/login");
+        return;
       }
+
+      const singleItem = location.state?.singleItem || [];
+      const items = singleItem.length > 0 ? singleItem : await refreshCart();
+      setCartItems(items);
+
+      if (user.address) {
+        setShippingInfo({
+          name: user.address.name || user.name || "",
+          address: user.address.address || user.address.street || "",
+          city: user.address.city || "",
+          state: user.address.state || "",
+          zip: user.address.zip || user.address.zip_code || "",
+          phone: user.address.phone || "",
+        });
+      } else {
+        setShippingInfo((prev) => ({ ...prev, name: user.name || "" }));
+      }
+
+      setLoading(false);
     };
-    fetchCart();
-  }, [navigate]);
 
-  const subtotal = cartItems.reduce(
-    (acc, item) => acc + item.price * (item.quantity || 1),
-    0
+    fetchCheckoutData();
+  }, [location.state, navigate, refreshCart, user]);
+
+  const subtotal = useMemo(
+    () => cartItems.reduce((acc, item) => acc + Number(item.price) * (item.quantity || 1), 0),
+    [cartItems]
   );
-
   const shippingCost = cartItems.length > 0 ? 50 : 0;
   const total = subtotal + shippingCost;
+  const isSingleBuy = Boolean(location.state?.singleItem?.length);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -80,14 +69,7 @@ function Checkout() {
   };
 
   const handleCheckout = async () => {
-    if (
-      !shippingInfo.name ||
-      !shippingInfo.address ||
-      !shippingInfo.city ||
-      !shippingInfo.state ||
-      !shippingInfo.zip ||
-      !shippingInfo.phone
-    ) {
+    if (Object.values(shippingInfo).some((value) => !String(value).trim())) {
       toast.error(
         <>
           <FiAlertTriangle className="inline-block mr-2" /> Please fill all shipping details.
@@ -97,80 +79,58 @@ function Checkout() {
     }
 
     try {
-      const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-      if (!storedUser) {
-        toast.error("Please login first!");
-        navigate("/login");
-        return;
-      }
-
-      const orderData = {
-        id: Date.now(),
-        userId: storedUser.id,
-        items: cartItems,
-        totalAmount: total,
-        shippingInfo,
-        paymentMethod,
-        orderDate: new Date().toLocaleString(),
-        status: "Placed",
+      const payload = {
+        shipping_info: shippingInfo,
+        payment_method: paymentMethod,
+        payment_reference: paymentMethod === "cod" ? "" : paymentReference.trim(),
+        save_address: saveAddress,
       };
 
-      let currentUser = userData;
-      if (!currentUser) {
-        const res = await getUserById(storedUser.id);
-        currentUser = res.data;
+      if (isSingleBuy) {
+        payload.items = cartItems.map((item) => ({
+          product_id: item.product_id || item.id,
+          quantity: item.quantity || 1,
+        }));
+      }
+
+      await createOrder(payload);
+
+      if (!isSingleBuy) {
+        await refreshCart();
       }
 
       if (saveAddress) {
-        await updateUser(storedUser.id, { address: shippingInfo });
+        setUser((prevUser) => ({
+          ...prevUser,
+          address: shippingInfo,
+        }));
       }
 
-      let existingOrders = currentUser.order || currentUser.orders || [];
-      const updatedOrders = [...existingOrders, orderData];
-
-      const updatePayload = { cart: [] };
-      currentUser.order !== undefined
-        ? (updatePayload.order = updatedOrders)
-        : (updatePayload.orders = updatedOrders);
-
-      await updateUser(storedUser.id, updatePayload);
-
-      localStorage.removeItem("userCart");
-      localStorage.removeItem("singleBuyItem");
-
-      // toast for place order
       toast.success(
         <>
           <FiCheckCircle className="inline-block mr-2" /> Order placed successfully!
         </>
       );
 
-      
       setTimeout(() => {
         navigate("/OrderSuccess");
-      }, 1500);
-
-    } catch {
+      }, 1200);
+    } catch (error) {
       toast.error(
         <>
-          <FiXCircle className="inline-block mr-2" /> Something went wrong!
+          <FiXCircle className="inline-block mr-2" /> {getApiErrorMessage(error)}
         </>
       );
     }
   };
 
   if (loading) {
-    return (
-      <div className="text-center py-20 text-gray-600 text-xl">
-        Loading checkout...
-      </div>
-    );
+    return <div className="text-center py-20 text-gray-600 text-xl">Loading checkout...</div>;
   }
 
   if (cartItems.length === 0) {
     return (
       <div className="text-center py-20 text-gray-600 text-xl flex flex-col items-center gap-4">
-        <Toaster position="top-right" />
         <FiFrown className="text-4xl text-gray-500" />
         Your cart is empty
         <div className="mt-6">
@@ -187,13 +147,9 @@ function Checkout() {
 
   return (
     <div className="pt-28 bg-gradient-to-br from-yellow-50 to-pink-50 min-h-screen p-6">
-      <Toaster position="top-right" />
-      <h1 className="text-4xl font-bold text-center mb-10 text-gray-800">
-        Checkout
-      </h1>
+      <h1 className="text-4xl font-bold text-center mb-10 text-gray-800">Checkout</h1>
 
       <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-10">
-        {/* Shipping Section */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <h2 className="text-2xl font-semibold mb-4">Shipping Details</h2>
 
@@ -210,19 +166,6 @@ function Checkout() {
               />
             ))}
 
-            <div className="flex items-center mt-4">
-              <input
-                type="checkbox"
-                id="saveAddress"
-                checked={saveAddress}
-                onChange={(e) => setSaveAddress(e.target.checked)}
-                className="w-4 h-4 text-yellow-600 border-gray-300 rounded"
-              />
-              <label htmlFor="saveAddress" className="ml-2 text-sm text-gray-700">
-                Save this address for future orders
-              </label>
-            </div>
-
             <div className="mt-6">
               <h3 className="font-semibold mb-2">Payment Method</h3>
               <select
@@ -236,6 +179,29 @@ function Checkout() {
               </select>
             </div>
 
+            {paymentMethod !== "cod" && (
+              <input
+                type="text"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder={paymentMethod === "upi" ? "Enter UPI transaction ID" : "Enter payment reference"}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              />
+            )}
+
+            <div className="flex items-center mt-4">
+              <input
+                type="checkbox"
+                id="saveAddress"
+                checked={saveAddress}
+                onChange={(e) => setSaveAddress(e.target.checked)}
+                className="w-4 h-4 text-yellow-600 border-gray-300 rounded"
+              />
+              <label htmlFor="saveAddress" className="ml-2 text-sm text-gray-700">
+                Save this address for future orders
+              </label>
+            </div>
+
             <button
               onClick={handleCheckout}
               className="w-full mt-6 bg-yellow-600 hover:bg-yellow-700 text-white py-3 rounded-full font-semibold transition"
@@ -245,7 +211,6 @@ function Checkout() {
           </div>
         </div>
 
-        {/* Order Summary */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <h2 className="text-2xl font-semibold mb-4">Order Summary</h2>
 
@@ -255,21 +220,21 @@ function Checkout() {
                 <p>
                   {item.name} x {item.quantity || 1}
                 </p>
-                <p>₹{item.price * (item.quantity || 1)}</p>
+                <p>Rs. {Number(item.price) * (item.quantity || 1)}</p>
               </div>
             ))}
 
             <div className="flex justify-between font-semibold border-t pt-3">
               <p>Subtotal</p>
-              <p>₹{subtotal}</p>
+              <p>Rs. {subtotal}</p>
             </div>
             <div className="flex justify-between">
               <p>Shipping</p>
-              <p>₹{shippingCost}</p>
+              <p>Rs. {shippingCost}</p>
             </div>
             <div className="flex justify-between font-semibold text-lg border-t pt-3">
               <p>Total</p>
-              <p>₹{total}</p>
+              <p>Rs. {total}</p>
             </div>
           </div>
         </div>

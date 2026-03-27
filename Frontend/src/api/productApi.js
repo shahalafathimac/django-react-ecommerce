@@ -1,21 +1,11 @@
 import axiosInstance from "./axiosInstance";
 
-// GET all products
-export const getProducts = () => {
-  return axiosInstance.get("/ornaments");
-};
+export const getProducts = (params = {}) => axiosInstance.get("/products/", { params });
 
-// DELETE product
-export const deleteProductApi = (id) => {
-  return axiosInstance.delete(`/ornaments/${id}`);
-};
+export const getProductById = (id) => axiosInstance.get(`/products/${id}/`);
 
-// ADD product
-export const addProduct = (data) => {
-  return axiosInstance.post("/ornaments", data);
-};
+export const deleteProductApi = (id) => axiosInstance.delete(`/products/delete/${id}/`);
 
-// UPDATE product
-export const updateProduct = (id, data) => {
-  return axiosInstance.put(`/ornaments/${id}`, data);
-};
+export const addProduct = (data) => axiosInstance.post("/products/create/", data);
+
+export const updateProduct = (id, data) => axiosInstance.put(`/products/update/${id}/`, data);

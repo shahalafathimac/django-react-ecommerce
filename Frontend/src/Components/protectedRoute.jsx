@@ -1,11 +1,16 @@
-import React from "react";
+import React, { useContext } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 
-// ✅ Protects ADMIN routes — redirects non-admins to /login
-export const ProtectedRoute = ({ requiredRole }) => {
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+import { UserContext } from "../UserContext";
 
-  if (!user || !user.role) {
+export const ProtectedRoute = ({ requiredRole }) => {
+  const { user, loading } = useContext(UserContext);
+
+  if (loading) {
+    return <div className="pt-28 text-center text-gray-600">Loading session...</div>;
+  }
+
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -16,9 +21,12 @@ export const ProtectedRoute = ({ requiredRole }) => {
   return <Outlet />;
 };
 
-// ✅ Protects USER routes — redirects admins to /admin/dashboard
 export const UserRoute = () => {
-  const user = JSON.parse(localStorage.getItem("loggedInUser"));
+  const { user, loading } = useContext(UserContext);
+
+  if (loading) {
+    return <div className="pt-28 text-center text-gray-600">Loading session...</div>;
+  }
 
   if (user?.role === "admin") {
     return <Navigate to="/admin/dashboard" replace />;

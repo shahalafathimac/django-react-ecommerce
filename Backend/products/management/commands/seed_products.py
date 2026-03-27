@@ -1,33 +1,45 @@
 import json
-from django.core.management.base import BaseCommand
-from products.models import Product,Category
-import os
-from django.conf import settings
+from pathlib import Path
 
-file_path = os.path.join(settings.BASE_DIR, 'db.json')
+from django.conf import settings
+from django.core.management.base import BaseCommand
+
+from products.models import Category, Product
+
 
 class Command(BaseCommand):
-    help = "seed products from JSON"
+    help = "Seed products from db.json into the database."
 
-    def handle(self, *args, **kwargs):
-        with open(file_path, 'r') as f:
-            data = json.load(f)
+    def handle(self, *args, **options):
+        file_path = Path(settings.BASE_DIR) / 'db.json'
 
-        ornaments = data.get('ornaments', [])
-        
-        for item in ornaments:
-            category_name = item.get('category')
+        with file_path.open(encoding='utf-8') as file:
+            data = json.load(file)
 
-            category, _ = Category.objects.get_or_create(name=category_name)
+        created_count = 0
+        updated_count = 0
 
-            Product.objects.create(
-                name = item.get('name'),
-                category = category,
-                type = item.get('type'),
-                price = item.get('price'),
-                description = item.get('description'),
-                image = item.get('image'),
-                stock = item.get('stock')
+        for item in data.get('ornaments', []):
+            category, _ = Category.objects.get_or_create(name=item['category'].strip())
+            _, created = Product.objects.update_or_create(
+                id=int(item['id']),
+                defaults={
+                    'name': item['name'],
+                    'description': item['description'],
+                    'price': item['price'],
+                    'stock': item['stock'],
+                    'image': item['image'],
+                    'category': category,
+                    'type': item.get('type', 'Jewelry'),
+                },
             )
+            if created:
+                created_count += 1
+            else:
+                updated_count += 1
 
-        self.stdout.write(self.style.SUCCESS("products seeded successfully!"))
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Seeded products successfully. Created: {created_count}, Updated: {updated_count}'
+            )
+        )

@@ -1,12 +1,15 @@
-
-import React, { useState, useEffect } from "react";
-import { getUserById, updateUser } from "../api/userApi.js";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiSmile, FiPackage, FiCheck, FiXCircle } from "react-icons/fi";
+import { FiCheck, FiPackage, FiSmile, FiXCircle } from "react-icons/fi";
+
+import { getApiErrorMessage } from "../api/apiError";
+import { getMyOrders, updateOrderStatus } from "../api/orderApi";
+import { UserContext } from "../UserContext";
+import { updateUser } from "../api/userApi";
 
 function Profile() {
-  const [user, setUser] = useState(null);
+  const { user, setUser, logout, loading: sessionLoading } = useContext(UserContext);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
   const [orders, setOrders] = useState([]);
@@ -18,42 +21,38 @@ function Profile() {
     zip: "",
     phone: "",
   });
-console.log(orders.reverse())
   const navigate = useNavigate();
 
-  /* FETCH USER DATA */
   useEffect(() => {
     const fetchUserData = async () => {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-        if (!storedUser) {
+      if (!user) {
+        if (!sessionLoading) {
           navigate("/login");
-          return;
         }
+        return;
+      }
 
-        const res = await getUserById(storedUser.id);
-        const userData = res.data;
-
-        setUser(userData);
-        const userOrders = userData.order.reverse() ||  [];
-        setOrders(Array.isArray(userOrders) ? userOrders : []);//reversed here
-
-        if (userData.address) {
-          setAddress(userData.address);
-        } else {
-          setAddress((prev) => ({ ...prev, name: userData.name }));
-        }
-      } catch (err) {
-        console.error("Error loading profile:", err);
+      try {
+        const ordersRes = await getMyOrders();
+        setOrders(ordersRes.data);
+        setAddress({
+          name: user.address?.name || user.name || "",
+          address: user.address?.address || user.address?.street || "",
+          city: user.address?.city || "",
+          state: user.address?.state || "",
+          zip: user.address?.zip || user.address?.zip_code || "",
+          phone: user.address?.phone || "",
+        });
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, "Unable to load profile."));
       } finally {
         setLoading(false);
       }
     };
 
     fetchUserData();
-  }, [navigate]);
+  }, [navigate, sessionLoading, user]);
 
-  /* STATUS COLORS */
   const getStatusColor = (status) => {
     const colors = {
       Placed: "bg-blue-100 text-blue-800",
@@ -66,7 +65,6 @@ console.log(orders.reverse())
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
-  /* UPDATE ADDRESS */
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
     setAddress((prev) => ({ ...prev, [name]: value }));
@@ -74,58 +72,34 @@ console.log(orders.reverse())
 
   const saveAddress = async () => {
     try {
-      await updateUser(user.id, { address });
+      const response = await updateUser(user.id, { address });
+      setUser(response.data);
       toast.success("Address updated successfully!");
-    } catch (err) {
-      toast.error("Unable to save address.");
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, "Unable to save address."));
     }
   };
 
-  /* LOGOUT */
-  const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
-  /* 🚀 CANCEL ORDER FUNCTION */
   const cancelOrder = async (orderId) => {
-    const storedUser = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (!storedUser) return;
-
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
 
     try {
-      // Update UI immediately
-      setOrders((prev) =>
-        prev.map((ord) =>
-          ord.id === orderId ? { ...ord, status: "Cancelled" } : ord
-        )
+      const response = await updateOrderStatus(orderId, "Cancelled");
+      setOrders((prevOrders) =>
+        prevOrders.map((order) => (order.id === orderId ? response.data : order))
       );
-
-      // Fetch latest user data
-      const res = await getUserById(storedUser.id);
-      const userData = res.data;
-
-      const existingOrders = userData.order || userData.orders || [];
-      const updatedOrders = existingOrders.map((ord) =>
-        ord.id === orderId ? { ...ord, status: "Cancelled" } : ord
-      );
-
-      // Handle both DB keys (order / orders)
-      const payload = {};
-      if (userData.order !== undefined) payload.order = updatedOrders;
-      else payload.orders = updatedOrders;
-
-      await updateUser(storedUser.id, payload);
-
       toast.success("Order cancelled successfully!");
     } catch (error) {
-      toast.error("Failed to cancel order.");
+      toast.error(getApiErrorMessage(error, "Failed to cancel order."));
     }
   };
 
-  /* LOADING */
-  if (loading) {
+  if (sessionLoading || loading) {
     return (
       <div className="pt-28 min-h-screen flex justify-center items-center text-xl text-gray-600">
         Loading profile...
@@ -147,7 +121,6 @@ console.log(orders.reverse())
     );
   }
 
-  /* UI */
   return (
     <div className="pt-28 min-h-screen bg-gradient-to-br from-yellow-50 to-pink-50 p-6">
       <div className="max-w-5xl mx-auto">
@@ -158,7 +131,6 @@ console.log(orders.reverse())
           </p>
         </div>
 
-        {/* TABS */}
         <div className="flex justify-center mb-8">
           <div className="bg-white shadow-lg rounded-full p-1">
             {["profile", "orders", "address"].map((tab) => (
@@ -171,19 +143,13 @@ console.log(orders.reverse())
                     : "text-gray-600 hover:text-yellow-600"
                 }`}
               >
-                {tab === "profile"
-                  ? "Profile Info"
-                  : tab === "orders"
-                  ? "My Orders"
-                  : "Address"}
+                {tab === "profile" ? "Profile Info" : tab === "orders" ? "My Orders" : "Address"}
               </button>
             ))}
           </div>
         </div>
 
-        {/* TAB CONTENT */}
         <div className="bg-white p-8 shadow-lg rounded-2xl">
-          {/* PROFILE INFO */}
           {activeTab === "profile" && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold mb-4">Personal Information</h2>
@@ -207,7 +173,7 @@ console.log(orders.reverse())
                 <div>
                   <label className="font-semibold text-gray-700 text-sm">Member Since</label>
                   <div className="border p-3 rounded bg-gray-50">
-                    {new Date().toLocaleDateString()}
+                    {new Date(user.date_joined).toLocaleDateString()}
                   </div>
                 </div>
               </div>
@@ -230,7 +196,6 @@ console.log(orders.reverse())
             </div>
           )}
 
-          {/* ORDERS TAB */}
           {activeTab === "orders" && (
             <div>
               <h2 className="text-2xl font-bold mb-6">My Orders</h2>
@@ -246,9 +211,13 @@ console.log(orders.reverse())
                     <div className="flex justify-between items-center mb-3">
                       <div>
                         <h3 className="font-semibold text-lg">Order #{order.id}</h3>
-                        <p className="text-gray-500 text-sm">{order.orderDate}</p>
+                        <p className="text-gray-500 text-sm">
+                          {new Date(order.orderDate || order.created_at).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Payment: {order.paymentMethod} - {order.paymentStatus}
+                        </p>
                       </div>
-                      
 
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(
@@ -265,17 +234,14 @@ console.log(orders.reverse())
                           <p>
                             {item.name} x {item.quantity || 1}
                           </p>
-                          <p>₹{item.price * (item.quantity || 1)}</p>
+                          <p>Rs. {Number(item.price) * (item.quantity || 1)}</p>
                         </div>
                       ))}
                     </div>
 
-                    <p className="text-yellow-600 font-bold text-lg">
-                      Total: ₹{order.totalAmount}
-                    </p>
+                    <p className="text-yellow-600 font-bold text-lg">Total: Rs. {order.totalAmount}</p>
 
-                    {/* CANCEL BUTTON */}
-                    {order.status !== "Cancelled" && (
+                    {!["Cancelled", "Delivered"].includes(order.status) && (
                       <button
                         onClick={() => cancelOrder(order.id)}
                         className="mt-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm transition"
@@ -289,7 +255,6 @@ console.log(orders.reverse())
             </div>
           )}
 
-          {/* ADDRESS TAB */}
           {activeTab === "address" && (
             <div>
               <h2 className="text-2xl font-bold mb-6">Saved Address</h2>
@@ -335,4 +300,3 @@ console.log(orders.reverse())
 }
 
 export default Profile;
-

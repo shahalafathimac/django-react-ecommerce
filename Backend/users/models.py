@@ -9,6 +9,7 @@ class UserManager(BaseUserManager):
         email = self.normalize_email(email)
         extra_fields.setdefault('role', 'user')
         extra_fields.setdefault('active', True)
+        extra_fields.setdefault('address', {})
         user = self.model(email=email, name=name, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -41,6 +42,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     state           = models.CharField(max_length=100, blank=True, null=True)
     zip_code        = models.CharField(max_length=20,  blank=True, null=True)
     country         = models.CharField(max_length=100, blank=True, null=True)
+    address         = models.JSONField(default=dict, blank=True)
 
     # ── Django Required Fields ────────────────────────────────
     is_staff        = models.BooleanField(default=False)

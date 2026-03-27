@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import {
   FiBarChart2,
@@ -8,7 +8,8 @@ import {
   FiMenu,
 } from "react-icons/fi";
 
-/* MAIN ADMIN LAYOUT (Navbar + Sidebar + Outlet Content) */
+import { UserContext } from "../../UserContext";
+
 const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -27,7 +28,6 @@ const AdminLayout = () => {
   );
 };
 
-/* SIDEBAR */
 const Sidebar = ({ setSidebarOpen }) => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -40,9 +40,9 @@ const Sidebar = ({ setSidebarOpen }) => {
 
   const menuItems = [
     { path: "/admin/dashboard", icon: <FiBarChart2 size={20} />, label: "Dashboard" },
-    { path: "/admin/orders",    icon: <FiPackage size={20} />,   label: "Orders"    },
-    { path: "/admin/products",  icon: <FiShoppingBag size={20} />, label: "Products"},
-    { path: "/admin/users",     icon: <FiUsers size={20} />,     label: "Users"     },
+    { path: "/admin/orders", icon: <FiPackage size={20} />, label: "Orders" },
+    { path: "/admin/products", icon: <FiShoppingBag size={20} />, label: "Products" },
+    { path: "/admin/users", icon: <FiUsers size={20} />, label: "Users" },
   ];
 
   const isActive = (path) => location.pathname === path;
@@ -54,11 +54,7 @@ const Sidebar = ({ setSidebarOpen }) => {
       }`}
     >
       <div className="p-4 flex items-center justify-between">
-        {isOpen && (
-          <h1 className="text-lg font-bold whitespace-nowrap">
-            Orovia Ornaments
-          </h1>
-        )}
+        {isOpen && <h1 className="text-lg font-bold whitespace-nowrap">Orovia Ornaments</h1>}
         <button
           onClick={toggleSidebar}
           className="p-2 rounded-md hover:bg-gray-700 transition"
@@ -87,13 +83,13 @@ const Sidebar = ({ setSidebarOpen }) => {
   );
 };
 
-/* NAVBAR */
 const Navbar = ({ isOpen }) => {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const { logout, user } = useContext(UserContext);
 
-  const handleLogout = () => {
-    localStorage.removeItem("loggedInUser");
+  const handleLogout = async () => {
+    await logout();
     navigate("/login", { replace: true });
   };
 
@@ -108,13 +104,12 @@ const Navbar = ({ isOpen }) => {
       <div className="ml-auto relative">
         <button onClick={() => setIsProfileOpen(!isProfileOpen)}>
           <div className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center">
-            <span className="text-white">A</span>
+            <span className="text-white">{user?.name?.charAt(0)?.toUpperCase() || "A"}</span>
           </div>
         </button>
 
         {isProfileOpen && (
           <div className="absolute right-0 mt-2 w-40 bg-white text-gray-900 rounded shadow-lg border">
-            {/* ✅ was: onClick={() => navigate("/login")} — didn't clear localStorage */}
             <button
               onClick={handleLogout}
               className="px-4 py-2 text-sm text-red-600 w-full text-left hover:bg-gray-200"

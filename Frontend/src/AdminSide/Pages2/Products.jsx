@@ -1,11 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { FiPlus, FiShoppingBag } from 'react-icons/fi';
-import {
-  getProducts,
-  deleteProductApi,
-  addProduct,
-  updateProduct
-} from "../../api/productApi.js";
+import React, { useEffect, useState } from "react";
+import { FiPlus, FiShoppingBag } from "react-icons/fi";
+
+import { addProduct, deleteProductApi, getProducts, updateProduct } from "../../api/productApi.js";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -14,31 +10,29 @@ const Products = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  // GET PRODUCTS
   const fetchProducts = async () => {
     try {
-      const response = await getProducts(); 
-      setProducts(response.data);
+      const response = await getProducts({ page: 1, page_size: 50, search: search || undefined });
+      setProducts(response.data.results || []);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // DELETE PRODUCT 
+  useEffect(() => {
+    fetchProducts();
+  }, [search]);
+
   const deleteProduct = async (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await deleteProductApi(id);
-        fetchProducts();
-      } catch (error) {
-        console.error('Error deleting product:', error);
-      }
+    if (!window.confirm("Are you sure you want to delete this product?")) return;
+
+    try {
+      await deleteProductApi(id);
+      fetchProducts();
+    } catch (error) {
+      console.error("Error deleting product:", error);
     }
   };
 
@@ -47,26 +41,23 @@ const Products = () => {
     setShowAddForm(true);
   };
 
-  // ADD / UPDATE PRODUCT 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
 
     const productData = {
-      name: formData.get('name'),
-      category: formData.get('category'),
-      price: parseFloat(formData.get('price')),
-      stock: parseInt(formData.get('stock')),
-      description: formData.get('description'),
-      image: formData.get('image'),
+      name: formData.get("name"),
+      category: formData.get("category"),
+      type: formData.get("type"),
+      price: parseFloat(formData.get("price")),
+      stock: parseInt(formData.get("stock"), 10),
+      description: formData.get("description"),
+      image: formData.get("image"),
     };
 
     try {
       if (editingProduct) {
-        await updateProduct(editingProduct.id, {
-          ...editingProduct,
-          ...productData
-        });
+        await updateProduct(editingProduct.id, productData);
       } else {
         await addProduct(productData);
       }
@@ -75,23 +66,11 @@ const Products = () => {
       setEditingProduct(null);
       fetchProducts();
     } catch (error) {
-      console.error('Error saving product:', error);
+      console.error("Error saving product:", error);
     }
   };
 
-  // FILTER PRODUCTS (same)
-  const filteredProducts = products
-    .filter((p) => {
-      const term = search.toLowerCase();
-      return (
-        p.name.toLowerCase().includes(term) ||
-        p.category.toLowerCase().includes(term) ||
-        p.description.toLowerCase().includes(term) ||
-        p.price.toString().includes(term) ||
-        p.stock.toString().includes(term)
-      );
-    })
-    .reverse();
+  const filteredProducts = [...products].reverse();
 
   if (loading) {
     return (
@@ -103,8 +82,6 @@ const Products = () => {
 
   return (
     <div className="p-6">
-
-      {/* Header + Search */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Products Management</h1>
 
@@ -117,7 +94,6 @@ const Products = () => {
         />
       </div>
 
-      {/* Add Button */}
       <div className="flex justify-end mb-4">
         <button
           onClick={() => setShowAddForm(true)}
@@ -128,56 +104,96 @@ const Products = () => {
         </button>
       </div>
 
-      {/* Add / Edit Product Form */}
       {showAddForm && (
         <div className="fixed inset-0 bg-slate-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
+              {editingProduct ? "Edit Product" : "Add New Product"}
             </h2>
 
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
-                <input type="text" name="name" placeholder="Product Name"
-                  defaultValue={editingProduct?.name || ''}
-                  className="w-full p-3 border rounded-lg" required />
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="Product Name"
+                  defaultValue={editingProduct?.name || ""}
+                  className="w-full p-3 border rounded-lg"
+                  required
+                />
 
-                <input type="text" name="category" placeholder="Category"
-                  defaultValue={editingProduct?.category || ''}
-                  className="w-full p-3 border rounded-lg" required />
+                <input
+                  type="text"
+                  name="category"
+                  placeholder="Category"
+                  defaultValue={editingProduct?.category || ""}
+                  className="w-full p-3 border rounded-lg"
+                  required
+                />
 
-                <input type="number" name="price" placeholder="Price" step="0.01"
-                  defaultValue={editingProduct?.price || ''}
-                  className="w-full p-3 border rounded-lg" required />
+                <input
+                  type="text"
+                  name="type"
+                  placeholder="Type"
+                  defaultValue={editingProduct?.type || ""}
+                  className="w-full p-3 border rounded-lg"
+                  required
+                />
 
-                <input type="number" name="stock" placeholder="Stock Quantity"
-                  defaultValue={editingProduct?.stock || ''}
-                  className="w-full p-3 border rounded-lg" required />
+                <input
+                  type="number"
+                  name="price"
+                  placeholder="Price"
+                  step="0.01"
+                  defaultValue={editingProduct?.price || ""}
+                  className="w-full p-3 border rounded-lg"
+                  required
+                />
+
+                <input
+                  type="number"
+                  name="stock"
+                  placeholder="Stock Quantity"
+                  defaultValue={editingProduct?.stock || ""}
+                  className="w-full p-3 border rounded-lg"
+                  required
+                />
 
                 <input
                   type="text"
                   name="image"
                   placeholder="Image URL"
-                  defaultValue={editingProduct?.image || ''}
+                  defaultValue={editingProduct?.image || ""}
                   className="w-full p-3 border rounded-lg"
                   required
                 />
 
-                <textarea name="description" placeholder="Description"
-                  defaultValue={editingProduct?.description || ''}
-                  className="w-full p-3 border rounded-lg" rows="3"></textarea>
+                <textarea
+                  name="description"
+                  placeholder="Description"
+                  defaultValue={editingProduct?.description || ""}
+                  className="w-full p-3 border rounded-lg"
+                  rows="3"
+                ></textarea>
               </div>
 
               <div className="flex justify-end space-x-3 mt-6">
-                <button type="button"
-                  onClick={() => { setShowAddForm(false); setEditingProduct(null); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingProduct(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
                   Cancel
                 </button>
 
-                <button type="submit"
-                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
-                  {editingProduct ? 'Update' : 'Add'} Product
+                <button
+                  type="submit"
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+                >
+                  {editingProduct ? "Update" : "Add"} Product
                 </button>
               </div>
             </form>
@@ -185,7 +201,6 @@ const Products = () => {
         </div>
       )}
 
-      {/* Products Table */}
       <div className="bg-white rounded-lg shadow-md border">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -202,7 +217,6 @@ const Products = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
-
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
@@ -219,25 +233,33 @@ const Products = () => {
 
                   <td className="px-6 py-4">{product.category}</td>
 
-                  <td className="px-6 py-4">₹ {product.price}</td>
+                  <td className="px-6 py-4">Rs. {product.price}</td>
 
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      product.stock > 10 ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-semibold ${
+                        product.stock > 10 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {product.stock} in stock
                     </span>
                   </td>
 
                   <td className="px-6 py-4">
-                    <button onClick={() => handleEdit(product)}
-                      className="text-blue-600 hover:text-blue-900 mr-3">Edit</button>
+                    <button
+                      onClick={() => handleEdit(product)}
+                      className="text-blue-600 hover:text-blue-900 mr-3"
+                    >
+                      Edit
+                    </button>
 
-                    <button onClick={() => deleteProduct(product.id)}
-                      className="text-red-600 hover:text-red-900">Delete</button>
+                    <button
+                      onClick={() => deleteProduct(product.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Delete
+                    </button>
                   </td>
-
                 </tr>
               ))}
             </tbody>
@@ -245,7 +267,6 @@ const Products = () => {
         </div>
       </div>
 
-      {/* No Products */}
       {filteredProducts.length === 0 && (
         <div className="text-center py-12">
           <FiShoppingBag className="text-6xl text-gray-400 mx-auto mb-4" />

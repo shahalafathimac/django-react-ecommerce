@@ -1,36 +1,25 @@
 import axiosInstance from "./axiosInstance";
 
-// Get all users
-export const getUsers = () => {
-  return axiosInstance.get("/users");
-};
+export const loginUser = (data) => axiosInstance.post("/users/login/", data);
 
-// Delete user
-export const deleteUserApi = (id) => {
-  return axiosInstance.delete(`/users/${id}`);
-};
+export const registerUser = (data) => axiosInstance.post("/users/register/", data);
 
-// Toggle status
-export const updateUserStatus = (id, active) => {
-  return axiosInstance.patch(`/users/${id}`, { active });
-};
+export const logoutUser = () => axiosInstance.post("/users/logout/", {});
 
-// Change role
-export const updateUserRole = (id, role) => {
-  return axiosInstance.patch(`/users/${id}`, { role });
-};
+export const getProfile = () => axiosInstance.get("/users/profile/");
 
-// 🔹 Get single user
-export const getUserById = (id) => {
-  return axiosInstance.get(`/users/${id}`);
-};
+export const updateProfile = (data) => axiosInstance.put("/users/profile/", data);
 
-// 🔹 Update user (generic)
-export const updateUser = (id, data) => {
-  return axiosInstance.patch(`/users/${id}`, data);
-};
+export const getUsers = () => axiosInstance.get("/users/");
 
-// CREATE USER (Signup)
-export const createUser = (data) => {
-  return axiosInstance.post("/users", data);
-};
+export const deleteUserApi = (id) => axiosInstance.delete(`/users/${id}/`);
+
+export const updateUserStatus = (id, active) => axiosInstance.patch(`/users/${id}/`, { active });
+
+export const updateUserRole = (id, role) => axiosInstance.patch(`/users/${id}/`, { role });
+
+export const getUserById = (id) => axiosInstance.get(`/users/${id}/`);
+
+export const updateUser = (id, data) => axiosInstance.patch(`/users/${id}/`, data);
+
+export const createUser = (data) => axiosInstance.post("/users/", data);
