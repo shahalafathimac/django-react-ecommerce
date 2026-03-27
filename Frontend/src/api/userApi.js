@@ -1,10 +1,28 @@
 import axiosInstance from "./axiosInstance";
 
+export const storeAuthData = (data) => {
+  if (data?.access) {
+    localStorage.setItem("accessToken", data.access);
+  }
+
+  if (data?.refresh) {
+    localStorage.setItem("refreshToken", data.refresh);
+  }
+};
+
+export const clearAuthData = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+};
+
 export const loginUser = (data) => axiosInstance.post("/users/login/", data);
 
 export const registerUser = (data) => axiosInstance.post("/users/register/", data);
 
-export const logoutUser = () => axiosInstance.post("/users/logout/", {});
+export const logoutUser = () =>
+  axiosInstance.post("/users/logout/", {
+    refresh: localStorage.getItem("refreshToken"),
+  });
 
 export const getProfile = () => axiosInstance.get("/users/profile/");
 
