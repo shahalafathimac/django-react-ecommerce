@@ -2,11 +2,10 @@ import React, { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  FiArrowLeft,
+  FiChevronLeft,
   FiCheck,
-  FiCheckCircle,
   FiShoppingBag,
-  FiXCircle,
+  FiLoader,
 } from "react-icons/fi";
 
 import { getApiErrorMessage } from "../api/apiError";
@@ -58,7 +57,7 @@ function ProductDetails() {
 
     navigate("/checkout", {
       state: {
-        singleItem: [
+        singleItem:[
           {
             id: product.id,
             product_id: product.id,
@@ -74,72 +73,131 @@ function ProductDetails() {
 
   if (!product) {
     return (
-      <div className="text-center text-gray-600 py-20 text-xl">
-        Loading product details...
+      <div className="min-h-screen bg-[#110804] pt-32 flex flex-col items-center">
+        <p className="text-[#c49b76] text-sm uppercase tracking-widest mt-20 flex items-center justify-center gap-3">
+          <FiLoader className="animate-spin text-xl" /> Loading details...
+        </p>
       </div>
     );
   }
 
+  // Format the price professionally with commas
+  const formattedPrice = Number(product.price || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  });
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-pink-50 py-20 px-6">
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-lg p-8 flex flex-col md:flex-row items-center gap-8">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full md:w-1/2 rounded-2xl object-cover"
-        />
+    <div className="min-h-screen bg-[#110804] pt-32 pb-20 px-6 md:px-12 font-sans text-[#f4ece4]">
+      <div className="max-w-[1200px] mx-auto">
+        
+        {/* Breadcrumb / Back Navigation */}
+        <button
+          onClick={() => navigate(-1)}
+          className="group flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#a89688] hover:text-[#c49b76] transition-colors duration-300 mb-10"
+        >
+          <FiChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+          Back to Collection
+        </button>
 
-        <div className="flex-1">
-          <h2 className="text-3xl font-bold text-gray-800 mb-3">{product.name}</h2>
-          <p className="text-gray-600 mb-3">{product.description}</p>
-
-          <p className="mb-3 font-semibold flex items-center gap-2">
-            {product.stock > 0 ? (
-              <span className="text-green-600 flex items-center gap-2">
-                <FiCheckCircle /> In Stock ({product.stock} available)
-              </span>
-            ) : (
-              <span className="text-red-600 flex items-center gap-2">
-                <FiXCircle /> Out of Stock
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+          
+          {/* Left Side: Product Image Showcase */}
+          <div className="bg-[#f9f6f0] p-10 md:p-16 rounded-sm relative flex items-center justify-center group">
+            {product.is_new && (
+              <span className="absolute top-6 left-6 bg-[#110804] text-[#c49b76] text-[10px] uppercase tracking-[0.2em] px-3 py-1 z-10">
+                New Arrival
               </span>
             )}
-          </p>
+            <img
+              src={product.image || "https://images.unsplash.com/photo-1599643478524-fb66f70a0066?auto=format&fit=crop&w=800&q=80"}
+              alt={product.name}
+              className="w-full max-w-md object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
+            />
+          </div>
 
-          <p className="text-xl font-semibold text-yellow-700 mb-5">Rs. {product.price}</p>
+          {/* Right Side: Product Details */}
+          <div className="flex flex-col">
+            
+            {/* Category */}
+            <p className="text-[#c49b76] text-[10px] uppercase tracking-[0.3em] mb-4">
+              {product.category || "Fine Jewellery"}
+            </p>
+            
+            {/* Title */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif leading-[1.1] mb-6 text-[#f4ece4]">
+              {product.name}
+            </h1>
 
-          <div className="flex flex-wrap gap-4">
-            <button
-              onClick={handleAddToCart}
-              disabled={product.stock === 0}
-              className={`px-6 py-2 font-semibold rounded-full transition-all flex items-center gap-2 ${
-                product.stock === 0
-                  ? "bg-gray-400 cursor-not-allowed text-white"
-                  : isAdded
-                    ? "bg-green-500 text-white"
-                    : "bg-yellow-500 text-white hover:bg-yellow-600"
-              }`}
-            >
-              {product.stock === 0 ? "Out of Stock" : isAdded ? <><FiCheck /> Added to Cart</> : "Add to Cart"}
-            </button>
+            {/* Price */}
+            <p className="text-2xl font-light tracking-wide text-[#e4d4c8] mb-8 border-b border-[#2a170e] pb-8">
+              <span className="text-[12px] uppercase tracking-[0.1em] text-[#a89688] mr-2">Rs.</span>
+              {formattedPrice}
+            </p>
 
-            <button
-              onClick={handleBuyNow}
-              disabled={product.stock === 0}
-              className={`px-6 py-2 font-semibold rounded-full text-white shadow-md transition-all flex items-center gap-2 ${
-                product.stock === 0
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-yellow-500 via-yellow-600 to-yellow-700 hover:from-yellow-600 hover:to-yellow-800"
-              }`}
-            >
-              <FiShoppingBag /> Buy Now
-            </button>
+            {/* Description */}
+            <p className="text-[#a89688] font-light leading-relaxed mb-8 text-sm md:text-base">
+              {product.description || "Exquisite quality gold jewelry that is hand-crafted to perfection. Our collection blends elegance with modern design, strongly recommended for you."}
+            </p>
 
-            <button
-              onClick={() => navigate(-1)}
-              className="text-yellow-600 font-semibold hover:underline flex items-center gap-2"
-            >
-              <FiArrowLeft /> Back to Products
-            </button>
+            {/* Stock Status */}
+            <div className="mb-10 flex items-center gap-3 text-[11px] uppercase tracking-[0.15em]">
+              {product.stock > 0 ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-[#c49b76]"></span>
+                  <span className="text-[#c49b76]">In Stock ({product.stock} Available)</span>
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-[#8c3c2a]"></span>
+                  <span className="text-[#8c3c2a]">Currently Unavailable</span>
+                </>
+              )}
+            </div>
+
+            {/* Call to Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              
+              {/* Add to Cart Button (Outlined) */}
+              <button
+                onClick={handleAddToCart}
+                disabled={product.stock === 0}
+                className={`flex-1 py-4 px-6 uppercase tracking-[0.2em] text-[11px] font-medium border rounded-full transition-all duration-300 flex items-center justify-center gap-3
+                  ${product.stock === 0
+                    ? "border-[#2a170e] text-[#2a170e] cursor-not-allowed"
+                    : isAdded
+                      ? "border-[#c49b76] bg-[#c49b76]/10 text-[#c49b76]"
+                      : "border-[#c49b76] text-[#c49b76] hover:bg-[#c49b76] hover:text-[#110804]"
+                  }`}
+              >
+                {product.stock === 0 ? "Out of Stock" : isAdded ? <><FiCheck size={16}/> Added to Cart</> : "Add to Cart"}
+              </button>
+
+              {/* Buy Now Button (Solid) */}
+              <button
+                onClick={handleBuyNow}
+                disabled={product.stock === 0}
+                className={`flex-1 py-4 px-6 uppercase tracking-[0.2em] text-[11px] font-medium rounded-full transition-all duration-300 flex items-center justify-center gap-3
+                  ${product.stock === 0
+                    ? "bg-[#2a170e] text-[#110804] cursor-not-allowed"
+                    : "bg-[#c49b76] text-[#110804] hover:bg-[#b58c66]"
+                  }`}
+              >
+                <FiShoppingBag size={16} /> Buy Now
+              </button>
+            </div>
+
+            {/* Extra Editorial Info */}
+            <div className="mt-12 pt-8 border-t border-[#2a170e] grid grid-cols-2 gap-6 text-[#a89688]">
+              <div>
+                <p className="text-[#e4d4c8] text-[10px] uppercase tracking-[0.2em] mb-2 font-semibold">Shipping</p>
+                <p className="text-xs font-light">Rs. 50 for secure shipping nationwide.</p>
+              </div>
+              <div>
+                <p className="text-[#e4d4c8] text-[10px] uppercase tracking-[0.2em] mb-2 font-semibold">Authenticity</p>
+                <p className="text-xs font-light">100% certified genuine materials.</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

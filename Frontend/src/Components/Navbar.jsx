@@ -6,44 +6,46 @@ import { UserContext } from "../UserContext";
 function Navbar() {
   const { user, cartItems } = useContext(UserContext);
 
-  return (
-    <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between bg-gradient-to-r from-yellow-200 to-yellow-500 px-8 py-4 shadow-lg">
-      <h1 className="text-2xl font-bold text-gray-800 tracking-wide">Orovia Ornaments</h1>
+  // Reusable style function for navigation links to maintain the luxurious theme
+  const getNavLinkClass = (isActive) =>
+    `text-[10px] uppercase tracking-[0.25em] font-medium transition-colors duration-300 ${
+      isActive
+        ? "text-[#c49b76]" // Active color (Copper/Gold)
+        : "text-[#e4d4c8] hover:text-[#c49b76]" // Default color (Muted Cream)
+    }`;
 
-      <div className="flex space-x-6 items-center">
+  return (
+    <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between bg-[#110804]/95 backdrop-blur-md px-10 py-6 border-b border-[#2a170e]">
+      
+      {/* Brand Logo styled with Serif font */}
+      <h1 className="text-2xl font-serif text-[#f4ece4] tracking-wider">
+        Orovia<span className="text-[12px] align-super text-[#c49b76]">+</span>
+      </h1>
+
+      {/* Navigation Links */}
+      <div className="flex space-x-10 items-center">
         <NavLink
           to="/"
-          className={({ isActive }) =>
-            `text-gray-800 font-medium hover:text-yellow-900 transition ${
-              isActive ? "border-b-2 border-yellow-800 pb-1" : ""
-            }`
-          }
+          className={({ isActive }) => getNavLinkClass(isActive)}
         >
           Home
         </NavLink>
 
         <NavLink
           to="/productList"
-          className={({ isActive }) =>
-            `text-gray-800 font-medium hover:text-yellow-900 transition ${
-              isActive ? "border-b-2 border-yellow-800 pb-1" : ""
-            }`
-          }
+          className={({ isActive }) => getNavLinkClass(isActive)}
         >
           Products
         </NavLink>
 
         <NavLink
           to="/cart"
-          className={({ isActive }) =>
-            `text-gray-800 font-medium hover:text-yellow-900 transition relative ${
-              isActive ? "border-b-2 border-yellow-800 pb-1" : ""
-            }`
-          }
+          className={({ isActive }) => `relative ${getNavLinkClass(isActive)}`}
         >
           Cart
+          {/* Elegant Cart Badge */}
           {user && cartItems.length > 0 && (
-            <span className="absolute -top-2 -right-4 bg-gray-800 text-white text-xs rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
+            <span className="absolute -top-3 -right-4 bg-[#c49b76] text-[#110804] text-[9px] font-bold rounded-full h-4 min-w-[1rem] px-1 flex items-center justify-center shadow-lg">
               {cartItems.length}
             </span>
           )}
@@ -52,22 +54,14 @@ function Navbar() {
         {user ? (
           <NavLink
             to="/profile"
-            className={({ isActive }) =>
-              `text-gray-800 font-medium hover:text-yellow-900 transition ${
-                isActive ? "border-b-2 border-yellow-800 pb-1" : ""
-              }`
-            }
+            className={({ isActive }) => getNavLinkClass(isActive)}
           >
             Profile
           </NavLink>
         ) : (
           <NavLink
             to="/login"
-            className={({ isActive }) =>
-              `text-gray-800 font-medium hover:text-yellow-900 transition ${
-                isActive ? "border-b-2 border-yellow-800 pb-1" : ""
-              }`
-            }
+            className={({ isActive }) => getNavLinkClass(isActive)}
           >
             Login
           </NavLink>
