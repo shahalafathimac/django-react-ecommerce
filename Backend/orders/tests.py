@@ -1,6 +1,5 @@
 from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
-
 from Cart.models import Cart, CartItem
 from orders.models import Order
 from products.models import Category, Product

@@ -1,10 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 
+
 User = get_user_model()
 
-
-# ── Address nested object (mirrors your frontend address:{}) ──
 class AddressSerializer(serializers.Serializer):
     name = serializers.CharField(required=False, allow_blank=True)
     street = serializers.CharField(required=False, allow_blank=True)
@@ -16,11 +15,9 @@ class AddressSerializer(serializers.Serializer):
     country = serializers.CharField(required=False, allow_blank=True)
     phone = serializers.CharField(required=False, allow_blank=True)
 
-
-# ── Register ─────────────────────────────────────────────────
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
-    address  = AddressSerializer(required=False)   # optional at signup
+    address  = AddressSerializer(required=False)  
 
     class Meta:
         model  = User
@@ -35,7 +32,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             password = validated_data['password'],
             role     = 'user',
             active   = True,
-            # Flatten address fields into model
+            
             street   = address_data.get('street', ''),
             city     = address_data.get('city', ''),
             state    = address_data.get('state', ''),
@@ -46,13 +43,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-# ── Login ─────────────────────────────────────────────────────
 class LoginSerializer(serializers.Serializer):
     email    = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
 
-# ── Profile (what frontend sees after login) ──────────────────
 class UserProfileSerializer(serializers.ModelSerializer):
     address = serializers.SerializerMethodField()
 
@@ -75,7 +70,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
         }
 
 
-# ── Update Profile ────────────────────────────────────────────
 class UpdateProfileSerializer(serializers.ModelSerializer):
     address  = AddressSerializer(required=False)
 
@@ -107,7 +101,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return instance
 
 
-# ── Change Password ───────────────────────────────────────────
 class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True, min_length=6)

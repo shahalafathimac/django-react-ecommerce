@@ -2,10 +2,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 from core.api import SafeAPIView
 from products.models import Product
-
 from .models import Cart, CartItem
 from .serializers import CartSerializer
 
@@ -67,7 +65,7 @@ class CartItemAPIView(SafeAPIView):
         item = get_object_or_404(
             CartItem.objects.select_related("product", "cart"),
             id=item_id,
-            cart__user=request.user,
+            cart__user=request.user, 
         )
 
         if quantity > item.product.stock:

@@ -20,7 +20,7 @@ class IsAdminRole(BasePermission):
         )
 
 
-# ✅ GET ALL PRODUCTS + FILTER + SEARCH
+# GET ALL PRODUCTS + FILTER + SEARCH
 class ProductListAPIView(SafeAPIView):
     permission_classes = [AllowAny]
     pagination_class = ProductPagination
@@ -109,7 +109,7 @@ class ProductCategoryListAPIView(SafeAPIView):
         return Response({"categories": categories, "types": types})
 
 
-# ✅ GET SINGLE PRODUCT
+# GET SINGLE PRODUCT
 class ProductDetailAPIView(SafeAPIView):
 
     permission_classes = [AllowAny]
@@ -124,7 +124,7 @@ class ProductDetailAPIView(SafeAPIView):
         return Response(serializer.data)
 
 
-# ✅ CREATE PRODUCT (for admin)
+# CREATE PRODUCT (for admin)
 class ProductCreateAPIView(SafeAPIView):
     permission_classes = [IsAdminRole]
 
@@ -138,7 +138,7 @@ class ProductCreateAPIView(SafeAPIView):
         return self.validation_error(serializer)
 
 
-# ✅ UPDATE PRODUCT
+#  UPDATE PRODUCT
 class ProductUpdateAPIView(SafeAPIView):
     permission_classes = [IsAdminRole]
 
@@ -157,7 +157,7 @@ class ProductUpdateAPIView(SafeAPIView):
         return self.validation_error(serializer)
 
 
-# ✅ DELETE PRODUCT
+# DELETE PRODUCT
 class ProductDeleteAPIView(SafeAPIView):
     permission_classes = [IsAdminRole]
 

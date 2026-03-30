@@ -102,7 +102,7 @@ function ProductDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           
           {/* Left Side: Product Image Showcase */}
-          <div className="bg-[#f9f6f0] p-10 md:p-16 rounded-sm relative flex items-center justify-center group">
+          <div className="p-10 md:p-16 rounded-xl relative flex items-center justify-center group">
             {product.is_new && (
               <span className="absolute top-6 left-6 bg-[#110804] text-[#c49b76] text-[10px] uppercase tracking-[0.2em] px-3 py-1 z-10">
                 New Arrival
@@ -111,7 +111,7 @@ function ProductDetails() {
             <img
               src={product.image || "https://images.unsplash.com/photo-1599643478524-fb66f70a0066?auto=format&fit=crop&w=800&q=80"}
               alt={product.name}
-              className="w-full max-w-md object-contain mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
+              className="w-full max-w-md object-contain mix-blend-screen transition-transform duration-700 group-hover:scale-105"
             />
           </div>
 

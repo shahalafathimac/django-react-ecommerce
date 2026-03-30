@@ -30,24 +30,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('admin', 'Admin'),
     )
 
-    # ── Core Fields ──────────────────────────────────────────
-    name            = models.CharField(max_length=100)
-    email           = models.EmailField(unique=True)
-    role            = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
-    active          = models.BooleanField(default=True)
+    name = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
+    active = models.BooleanField(default=True)
 
-    # ── Address (mirrors your frontend address:{} object) ────
-    street          = models.CharField(max_length=255, blank=True, null=True)
-    city            = models.CharField(max_length=100, blank=True, null=True)
-    state           = models.CharField(max_length=100, blank=True, null=True)
-    zip_code        = models.CharField(max_length=20,  blank=True, null=True)
-    country         = models.CharField(max_length=100, blank=True, null=True)
-    address         = models.JSONField(default=dict, blank=True)
+    street = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
+    zip_code = models.CharField(max_length=20, blank=True, null=True)
+    country = models.CharField(max_length=100, blank=True, null=True)
+    address = models.JSONField(default=dict, blank=True)
 
-    # ── Django Required Fields ────────────────────────────────
-    is_staff        = models.BooleanField(default=False)
-    is_superuser    = models.BooleanField(default=False)
-    date_joined     = models.DateTimeField(auto_now_add=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+    date_joined = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD  = 'email'
     REQUIRED_FIELDS = ['name']
