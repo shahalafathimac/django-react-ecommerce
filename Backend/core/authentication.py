@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
@@ -7,7 +8,7 @@ class CookieJWTAuthentication(JWTAuthentication):
         if header is not None:
             raw_token = self.get_raw_token(header)
         else:
-            raw_token = request.COOKIES.get("access_token")
+            raw_token = request.COOKIES.get(settings.AUTH_COOKIE_ACCESS)
 
         if raw_token is None:
             return None

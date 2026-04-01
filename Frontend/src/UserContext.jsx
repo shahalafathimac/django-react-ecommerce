@@ -19,13 +19,6 @@ export const UserProvider = ({ children }) => {
 
   const refreshCart = useCallback(async () => {
     try {
-      const accessToken = localStorage.getItem("accessToken");
-
-      if (!accessToken) {
-        setCartItems([]);
-        return [];
-      }
-
       const cartResponse = await getCart();
       const items = cartResponse.data.items || [];
       setCartItems(items);
@@ -38,14 +31,6 @@ export const UserProvider = ({ children }) => {
 
   const refreshSession = useCallback(async () => {
     try {
-      const accessToken = localStorage.getItem("accessToken");
-
-      if (!accessToken) {
-        setUser(null);
-        setCartItems([]);
-        return null;
-      }
-
       const profileResponse = await getProfile();
       setUser(profileResponse.data);
       return profileResponse.data;
@@ -60,15 +45,6 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const accessToken = localStorage.getItem("accessToken");
-
-        if (!accessToken) {
-          setUser(null);
-          setCartItems([]);
-          setLoading(false);
-          return;
-        }
-
         const profileResponse = await getProfile();
         setUser(profileResponse.data);
 

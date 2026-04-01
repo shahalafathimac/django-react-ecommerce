@@ -20,7 +20,7 @@ class SimpleCORSMiddleware:
         elif origin in allowed_origins:
             response["Access-Control-Allow-Origin"] = origin
 
-        response["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+        response["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-CSRFToken"
         response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
         response["Access-Control-Allow-Credentials"] = "true"
         response["Vary"] = "Origin"

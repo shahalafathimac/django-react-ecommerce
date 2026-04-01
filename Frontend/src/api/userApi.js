@@ -1,28 +1,25 @@
 import axiosInstance from "./axiosInstance";
 
-export const storeAuthData = (data) => {
-  if (data?.access) {
-    localStorage.setItem("accessToken", data.access);
-  }
+export const storeAuthData = () => {};
 
-  if (data?.refresh) {
-    localStorage.setItem("refreshToken", data.refresh);
-  }
+export const clearAuthData = () => {};
+
+export const ensureCsrfCookie = () => axiosInstance.get("/users/csrf/");
+
+export const loginUser = async (data) => {
+  await ensureCsrfCookie();
+  return axiosInstance.post("/users/login/", data);
 };
 
-export const clearAuthData = () => {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
+export const registerUser = async (data) => {
+  await ensureCsrfCookie();
+  return axiosInstance.post("/users/register/", data);
 };
 
-export const loginUser = (data) => axiosInstance.post("/users/login/", data);
-
-export const registerUser = (data) => axiosInstance.post("/users/register/", data);
-
-export const logoutUser = () =>
-  axiosInstance.post("/users/logout/", {
-    refresh: localStorage.getItem("refreshToken"),
-  });
+export const logoutUser = async () => {
+  await ensureCsrfCookie();
+  return axiosInstance.post("/users/logout/", {});
+};
 
 export const getProfile = () => axiosInstance.get("/users/profile/");
 

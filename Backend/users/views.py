@@ -1,5 +1,8 @@
 from django.contrib.auth import authenticate, get_user_model
+from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
@@ -28,12 +31,56 @@ class IsAdminRole(BasePermission):
         )
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
+class CSRFCookieView(SafeAPIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({'message': 'CSRF cookie set.'})
+
+
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {
         'refresh': str(refresh),
         'access': str(refresh.access_token),
     }
+
+
+def set_auth_cookies(response, access_token, refresh_token):
+    response.set_cookie(
+        settings.AUTH_COOKIE_ACCESS,
+        access_token,
+        httponly=True,
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+        max_age=int(settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME'].total_seconds()),
+        path=settings.AUTH_COOKIE_PATH,
+    )
+    response.set_cookie(
+        settings.AUTH_COOKIE_REFRESH,
+        refresh_token,
+        httponly=True,
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+        max_age=int(settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME'].total_seconds()),
+        path=settings.AUTH_COOKIE_PATH,
+    )
+    return response
+
+
+def clear_auth_cookies(response):
+    response.delete_cookie(
+        settings.AUTH_COOKIE_ACCESS,
+        path=settings.AUTH_COOKIE_PATH,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+    )
+    response.delete_cookie(
+        settings.AUTH_COOKIE_REFRESH,
+        path=settings.AUTH_COOKIE_PATH,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+    )
+    return response
 
 
 class RegisterView(SafeAPIView):
@@ -44,14 +91,14 @@ class RegisterView(SafeAPIView):
         if serializer.is_valid():
             user = serializer.save()
             tokens = get_tokens_for_user(user)
-            return Response(
+            response = Response(
                 {
                     'message': 'Signup successful.',
                     'user': UserProfileSerializer(user).data,
-                    **tokens,
                 },
                 status=status.HTTP_201_CREATED,
             )
+            return set_auth_cookies(response, tokens['access'], tokens['refresh'])
 
         if 'email' in serializer.errors:
             return Response({'error': 'User already exists!'}, status=status.HTTP_400_BAD_REQUEST)
@@ -80,20 +127,20 @@ class LoginView(SafeAPIView):
             )
 
         tokens = get_tokens_for_user(user)
-        return Response(
+        response = Response(
             {
                 'message': 'Login successful!',
                 'user': UserProfileSerializer(user).data,
-                **tokens,
             }
         )
+        return set_auth_cookies(response, tokens['access'], tokens['refresh'])
 
 
 class TokenRefreshCookieView(SafeAPIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        refresh_token = request.data.get('refresh')
+        refresh_token = request.COOKIES.get(settings.AUTH_COOKIE_REFRESH)
         if not refresh_token:
             return Response({'error': 'Refresh token not found.'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -106,7 +153,8 @@ class TokenRefreshCookieView(SafeAPIView):
         except TokenError:
             return Response({'error': 'Invalid token.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        return Response({'message': 'Token refreshed successfully.', **new_tokens})
+        response = Response({'message': 'Token refreshed successfully.'})
+        return set_auth_cookies(response, new_tokens['access'], new_tokens['refresh'])
 
 
 class LogoutView(SafeAPIView):
@@ -114,18 +162,21 @@ class LogoutView(SafeAPIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data.get('refresh')
+            refresh_token = request.COOKIES.get(settings.AUTH_COOKIE_REFRESH)
             if not refresh_token:
-                return Response(
+                response = Response(
                     {'error': 'Refresh token not found.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+                return clear_auth_cookies(response)
 
             token = RefreshToken(refresh_token)
             token.blacklist()
-            return Response({'message': 'Logged out successfully.'})
+            response = Response({'message': 'Logged out successfully.'})
+            return clear_auth_cookies(response)
         except TokenError:
-            return Response({'error': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
+            response = Response({'error': 'Invalid token.'}, status=status.HTTP_400_BAD_REQUEST)
+            return clear_auth_cookies(response)
 
 
 class ProfileView(SafeAPIView):
