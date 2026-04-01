@@ -1,15 +1,12 @@
 from decimal import Decimal
 from uuid import uuid4
-
 from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-
 from Cart.models import Cart
 from core.api import SafeAPIView
 from products.models import Product
 from users.views import IsAdminRole
-
 from .models import Order, OrderItem
 from .serializers import OrderSerializer
 

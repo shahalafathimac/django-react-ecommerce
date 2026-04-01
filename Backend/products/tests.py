@@ -1,5 +1,4 @@
 from rest_framework.test import APITestCase
-
 from products.models import Category, Product
 
 

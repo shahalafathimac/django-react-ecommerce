@@ -2,10 +2,8 @@ from django.db.models import Q
 from rest_framework import status
 from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
-
 from core.api import SafeAPIView
 from core.pagination import ProductPagination
-
 from .models import Category, Product
 from .serializers import ProductSerializer
 
