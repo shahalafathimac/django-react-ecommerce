@@ -3,6 +3,7 @@ from .models import Category, Product
 
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.CharField()
+    image = serializers.URLField()
 
     class Meta:
         model = Product

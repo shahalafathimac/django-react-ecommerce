@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { FiPlus, FiShoppingBag } from "react-icons/fi";
 
+import { getApiErrorMessage } from "../../api/apiError.js";
 import { addProduct, deleteProductApi, getProducts, updateProduct } from "../../api/productApi.js";
 
 const Products = () => {
@@ -9,6 +10,7 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [formError, setFormError] = useState("");
 
   const fetchProducts = async () => {
     try {
@@ -37,14 +39,15 @@ const Products = () => {
   };
 
   const handleEdit = (product) => {
+    setFormError("");
     setEditingProduct(product);
     setShowAddForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
     const formData = new FormData(e.target);
-
     const productData = {
       name: formData.get("name"),
       category: formData.get("category"),
@@ -66,6 +69,7 @@ const Products = () => {
       setEditingProduct(null);
       fetchProducts();
     } catch (error) {
+      setFormError(getApiErrorMessage(error, "Error saving product."));
       console.error("Error saving product:", error);
     }
   };
@@ -96,7 +100,11 @@ const Products = () => {
 
       <div className="flex justify-end mb-4">
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setFormError("");
+            setEditingProduct(null);
+            setShowAddForm(true);
+          }}
           className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center"
         >
           <FiPlus className="mr-2 text-xl" />
@@ -110,6 +118,12 @@ const Products = () => {
             <h2 className="text-xl font-bold mb-4">
               {editingProduct ? "Edit Product" : "Add New Product"}
             </h2>
+
+            {formError && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {formError}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
@@ -183,6 +197,7 @@ const Products = () => {
                   onClick={() => {
                     setShowAddForm(false);
                     setEditingProduct(null);
+                    setFormError("");
                   }}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >

@@ -87,29 +87,55 @@ class OrderListCreateAPIView(SafeAPIView):
                 transaction_reference=payment_reference or f"TXN-{uuid4().hex[:10].upper()}",
             )
             total_amount = Decimal("0.00")
+            product_ids = [item["product_id"] for item in normalized_items]
+            products_by_id = {
+                product.id: product
+                for product in Product.objects.select_for_update().filter(pk__in=product_ids)
+            }
+
+            requested_quantities = {}
+            for item in normalized_items:
+                requested_quantities[item["product_id"]] = (
+                    requested_quantities.get(item["product_id"], 0) + item["quantity"]
+                )
 
             for item in normalized_items:
-                product = Product.objects.select_for_update().filter(pk=item["product_id"]).first()
+                product = products_by_id.get(item["product_id"])
                 if not product:
                     transaction.set_rollback(True)
                     return Response({"error": f"Product {item['product_id']} was not found."}, status=404)
-                if item["quantity"] > product.stock:
+
+            for product_id, requested_quantity in requested_quantities.items():
+                product = products_by_id[product_id]
+                if requested_quantity > product.stock:
                     transaction.set_rollback(True)
                     return Response(
                         {"error": f"Only {product.stock} item(s) available for {product.name}."},
                         status=400,
                     )
 
+            order_items = []
+            updated_products = []
+            for item in normalized_items:
+                product = products_by_id[item["product_id"]]
                 line_price = Decimal(str(product.price))
-                OrderItem.objects.create(
-                    order=order,
-                    product=product,
-                    quantity=item["quantity"],
-                    price=line_price,
+                order_items.append(
+                    OrderItem(
+                        order=order,
+                        product=product,
+                        quantity=item["quantity"],
+                        price=line_price,
+                    )
                 )
                 total_amount += line_price * item["quantity"]
-                product.stock -= item["quantity"]
-                product.save(update_fields=["stock"])
+
+            for product_id, requested_quantity in requested_quantities.items():
+                product = products_by_id[product_id]
+                product.stock -= requested_quantity
+                updated_products.append(product)
+
+            OrderItem.objects.bulk_create(order_items)
+            Product.objects.bulk_update(updated_products, ["stock"])
 
             order.total_amount = total_amount
             order.save(update_fields=["total_amount"])

@@ -1,7 +1,11 @@
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
@@ -12,8 +16,10 @@ from core.api import SafeAPIView
 from .serializers import (
     AdminUserSerializer,
     ChangePasswordSerializer,
+    ForgotPasswordSerializer,
     LoginSerializer,
     RegisterSerializer,
+    ResetPasswordSerializer,
     UpdateProfileSerializer,
     UserProfileSerializer,
 )
@@ -216,6 +222,69 @@ class ChangePasswordView(SafeAPIView):
             return Response({'message': 'Password changed successfully.'})
 
         return self.validation_error(serializer)
+
+
+class ForgotPasswordView(SafeAPIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return self.validation_error(serializer)
+
+        email = serializer.validated_data["email"]
+        user = User.objects.filter(email__iexact=email, active=True).first()
+        response_data = {
+            "message": "If an account with that email exists, a password reset link has been generated.",
+        }
+
+        if not user:
+            return Response(response_data)
+
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        reset_url = settings.PASSWORD_RESET_URL.format(uid=uid, token=token)
+
+        send_mail(
+            subject="Reset your password",
+            message=f"Use this link to reset your password: {reset_url}",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+
+        if settings.DEBUG:
+            response_data["reset"] = {
+                "uid": uid,
+                "token": token,
+                "url": reset_url,
+            }
+
+        return Response(response_data)
+
+
+class ResetPasswordView(SafeAPIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return self.validation_error(serializer)
+
+        try:
+            user_id = force_str(urlsafe_base64_decode(serializer.validated_data["uid"]))
+            user = User.objects.filter(pk=user_id, active=True).first()
+        except (TypeError, ValueError, OverflowError):
+            user = None
+
+        if not user or not default_token_generator.check_token(user, serializer.validated_data["token"]):
+            return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(serializer.validated_data["new_password"])
+        user.save(update_fields=["password"])
+
+        response = Response({"message": "Password reset successful."})
+        return clear_auth_cookies(response)
 
 
 class UserListCreateView(SafeAPIView):
