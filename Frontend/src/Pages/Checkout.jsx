@@ -1,15 +1,26 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { FiAlertTriangle, FiCheckCircle, FiFrown, FiXCircle, FiLoader, FiShoppingBag, FiArrowRight, FiLock } from "react-icons/fi";
+import {
+  FiAlertTriangle,
+  FiCheckCircle,
+  FiFrown,
+  FiXCircle,
+  FiLoader,
+  FiShoppingBag,
+  FiArrowRight,
+  FiLock,
+  FiCreditCard,
+} from "react-icons/fi";
 
 import { getApiErrorMessage } from "../api/apiError";
 import { createOrder } from "../api/orderApi";
+import { createPaymentOrder, verifyPayment } from "../api/payment";
 import { UserContext } from "../UserContext";
 
 function Checkout() {
   const [cartItems, setCartItems] = useState([]);
-  const[loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [shippingInfo, setShippingInfo] = useState({
     name: "",
     address: "",
@@ -18,9 +29,10 @@ function Checkout() {
     zip: "",
     phone: "",
   });
-  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [paymentMethod, setPaymentMethod] = useState("razorpay");
   const [paymentReference, setPaymentReference] = useState("");
   const [saveAddress, setSaveAddress] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, setUser, refreshCart } = useContext(UserContext);
@@ -32,7 +44,7 @@ function Checkout() {
         return;
       }
 
-      const singleItem = location.state?.singleItem ||[];
+      const singleItem = location.state?.singleItem || [];
       const items = singleItem.length > 0 ? singleItem : await refreshCart();
       setCartItems(items);
 
@@ -63,7 +75,6 @@ function Checkout() {
   const total = subtotal + shippingCost;
   const isSingleBuy = Boolean(location.state?.singleItem?.length);
 
-  // Professional price formatter
   const formatPrice = (price) =>
     Number(price || 0).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 
@@ -83,10 +94,14 @@ function Checkout() {
     }
 
     try {
+      setSubmitting(true);
       const payload = {
         shipping_info: shippingInfo,
         payment_method: paymentMethod,
-        payment_reference: paymentMethod === "cod" ? "" : paymentReference.trim(),
+        payment_reference:
+          paymentMethod === "cod" || paymentMethod === "razorpay"
+            ? ""
+            : paymentReference.trim(),
         save_address: saveAddress,
       };
 
@@ -95,6 +110,76 @@ function Checkout() {
           product_id: item.product_id || item.id,
           quantity: item.quantity || 1,
         }));
+      }
+
+      if (paymentMethod === "razorpay") {
+        const { data } = await createPaymentOrder(payload);
+
+        const razorpay = new window.Razorpay({
+          key: data.key,
+          amount: data.amount,
+          currency: data.currency,
+          name: data.name,
+          description: data.description,
+          order_id: data.order_id,
+          prefill: data.prefill,
+          theme: {
+            color: "#c49b76",
+          },
+          handler: async (response) => {
+            try {
+              const verifyResponse = await verifyPayment(response);
+
+              if (!isSingleBuy) {
+                await refreshCart();
+              }
+
+              if (saveAddress) {
+                setUser((prevUser) => ({
+                  ...prevUser,
+                  address: shippingInfo,
+                }));
+              }
+
+              toast.success(
+                <div className="flex items-center gap-2 text-sm font-sans">
+                  <FiCheckCircle className="text-[#c49b76]" />{" "}
+                  {verifyResponse.data?.message || "Payment verified successfully!"}
+                </div>
+              );
+
+              setSubmitting(false);
+              setTimeout(() => {
+                navigate("/OrderSuccess");
+              }, 1200);
+            } catch (verifyError) {
+              setSubmitting(false);
+              toast.error(
+                <div className="flex items-center gap-2 text-sm font-sans">
+                  <FiXCircle className="text-[#8c3c2a]" /> {getApiErrorMessage(verifyError)}
+                </div>
+              );
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setSubmitting(false);
+            },
+          },
+        });
+
+        razorpay.on("payment.failed", (response) => {
+          setSubmitting(false);
+          toast.error(
+            <div className="flex items-center gap-2 text-sm font-sans">
+              <FiXCircle className="text-[#8c3c2a]" />{" "}
+              {response.error?.description || "Payment failed."}
+            </div>
+          );
+        });
+
+        razorpay.open();
+        return;
       }
 
       await createOrder(payload);
@@ -125,11 +210,15 @@ function Checkout() {
           <FiXCircle className="text-[#8c3c2a]" /> {getApiErrorMessage(error)}
         </div>
       );
+    } finally {
+      if (paymentMethod !== "razorpay") {
+        setSubmitting(false);
+      }
     }
   };
 
-  // Reusable input style
-  const inputStyle = "w-full bg-[#130905] text-[#e4d4c8] placeholder-[#a89688]/50 border border-[#2a170e] rounded-sm py-3 px-5 text-sm focus:outline-none focus:border-[#c49b76] transition-colors duration-300";
+  const inputStyle =
+    "w-full bg-[#130905] text-[#e4d4c8] placeholder-[#a89688]/50 border border-[#2a170e] rounded-sm py-3 px-5 text-sm focus:outline-none focus:border-[#c49b76] transition-colors duration-300";
 
   if (loading) {
     return (
@@ -161,8 +250,6 @@ function Checkout() {
 
   return (
     <div className="pt-32 pb-20 bg-[#110804] min-h-screen font-sans text-[#f4ece4] px-6 md:px-12">
-      
-      {/* Page Header */}
       <div className="max-w-[1200px] mx-auto mb-16 text-center">
         <p className="text-[10px] uppercase tracking-[0.3em] text-[#c49b76] mb-3 flex items-center justify-center gap-2">
           <FiLock size={12} /> Secure Checkout
@@ -173,8 +260,6 @@ function Checkout() {
       </div>
 
       <div className="max-w-[1200px] mx-auto grid lg:grid-cols-12 gap-12 lg:gap-20">
-        
-        {/* Left Side: Forms */}
         <div className="lg:col-span-7">
           <h2 className="text-[10px] uppercase tracking-[0.2em] text-[#a89688] border-b border-[#2a170e] pb-4 mb-8">
             1. Shipping Information
@@ -182,34 +267,88 @@ function Checkout() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">Full Name</label>
-              <input type="text" name="name" value={shippingInfo.name} onChange={handleChange} placeholder="Jane Doe" className={inputStyle} />
+              <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={shippingInfo.name}
+                onChange={handleChange}
+                placeholder="Jane Doe"
+                className={inputStyle}
+              />
             </div>
-            
+
             <div>
-              <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">Street Address</label>
-              <input type="text" name="address" value={shippingInfo.address} onChange={handleChange} placeholder="123 Luxury Avenue" className={inputStyle} />
+              <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
+                Street Address
+              </label>
+              <input
+                type="text"
+                name="address"
+                value={shippingInfo.address}
+                onChange={handleChange}
+                placeholder="123 Luxury Avenue"
+                className={inputStyle}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">City</label>
-                <input type="text" name="city" value={shippingInfo.city} onChange={handleChange} placeholder="Metropolis" className={inputStyle} />
+                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
+                  City
+                </label>
+                <input
+                  type="text"
+                  name="city"
+                  value={shippingInfo.city}
+                  onChange={handleChange}
+                  placeholder="Metropolis"
+                  className={inputStyle}
+                />
               </div>
               <div>
-                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">State / Province</label>
-                <input type="text" name="state" value={shippingInfo.state} onChange={handleChange} placeholder="State" className={inputStyle} />
+                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
+                  State / Province
+                </label>
+                <input
+                  type="text"
+                  name="state"
+                  value={shippingInfo.state}
+                  onChange={handleChange}
+                  placeholder="State"
+                  className={inputStyle}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">ZIP / Postal Code</label>
-                <input type="text" name="zip" value={shippingInfo.zip} onChange={handleChange} placeholder="000000" className={inputStyle} />
+                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
+                  ZIP / Postal Code
+                </label>
+                <input
+                  type="text"
+                  name="zip"
+                  value={shippingInfo.zip}
+                  onChange={handleChange}
+                  placeholder="000000"
+                  className={inputStyle}
+                />
               </div>
               <div>
-                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">Phone Number</label>
-                <input type="text" name="phone" value={shippingInfo.phone} onChange={handleChange} placeholder="+1 234 567 890" className={inputStyle} />
+                <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="text"
+                  name="phone"
+                  value={shippingInfo.phone}
+                  onChange={handleChange}
+                  placeholder="+1 234 567 890"
+                  className={inputStyle}
+                />
               </div>
             </div>
 
@@ -221,7 +360,10 @@ function Checkout() {
                 onChange={(e) => setSaveAddress(e.target.checked)}
                 className="w-4 h-4 bg-[#130905] border-[#2a170e] rounded-sm accent-[#c49b76] cursor-pointer"
               />
-              <label htmlFor="saveAddress" className="ml-3 text-[11px] uppercase tracking-[0.1em] text-[#a89688] cursor-pointer hover:text-[#c49b76] transition-colors">
+              <label
+                htmlFor="saveAddress"
+                className="ml-3 text-[11px] uppercase tracking-[0.1em] text-[#a89688] cursor-pointer hover:text-[#c49b76] transition-colors"
+              >
                 Save this address for future orders
               </label>
             </div>
@@ -233,28 +375,49 @@ function Checkout() {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">Select Method</label>
+              <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
+                Select Method
+              </label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 className={`${inputStyle} appearance-none cursor-pointer`}
               >
-                <option value="card" className="bg-[#130905]">Credit / Debit Card</option>
-                <option value="upi" className="bg-[#130905]">UPI Transfer</option>
-                <option value="cod" className="bg-[#130905]">Cash on Delivery</option>
+                <option value="razorpay" className="bg-[#130905]">
+                  Razorpay
+                </option>
+                <option value="upi" className="bg-[#130905]">
+                  UPI Transfer
+                </option>
+                <option value="cod" className="bg-[#130905]">
+                  Cash on Delivery
+                </option>
               </select>
             </div>
 
-            {paymentMethod !== "cod" && (
+            {paymentMethod === "razorpay" && (
+              <div className="border border-[#2a170e] bg-[#130905] rounded-sm p-5 text-[#a89688] text-sm">
+                <div className="flex items-center gap-3 text-[#f4ece4] mb-2">
+                  <FiCreditCard className="text-[#c49b76]" />
+                  <span className="uppercase tracking-[0.15em] text-[10px]">Razorpay Checkout</span>
+                </div>
+                <p className="leading-6">
+                  Pay securely with cards, UPI, netbanking, or wallets in the Razorpay popup after you click
+                  place order.
+                </p>
+              </div>
+            )}
+
+            {paymentMethod === "upi" && (
               <div className="animate-fade-in">
                 <label className="block text-[#e4d4c8] text-[10px] uppercase tracking-widest mb-2">
-                  {paymentMethod === "upi" ? "UPI Transaction ID" : "Payment Reference"}
+                  UPI Transaction ID
                 </label>
                 <input
                   type="text"
                   value={paymentReference}
                   onChange={(e) => setPaymentReference(e.target.value)}
-                  placeholder={paymentMethod === "upi" ? "Enter UPI transaction ID" : "Enter card / payment reference"}
+                  placeholder="Enter UPI transaction ID"
                   className={inputStyle}
                 />
               </div>
@@ -262,7 +425,6 @@ function Checkout() {
           </div>
         </div>
 
-        {/* Right Side: Order Summary */}
         <div className="lg:col-span-5">
           <div className="bg-[#130905] border border-[#2a170e] p-8 rounded-sm sticky top-32">
             <h2 className="font-serif text-2xl text-[#f4ece4] mb-8">Order Summary</h2>
@@ -270,21 +432,26 @@ function Checkout() {
             <div className="space-y-6 mb-8 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
               {cartItems.map((item) => (
                 <div key={item.id} className="flex items-start gap-4">
-                  {/* Item Image */}
                   <div className="w-16 h-16 bg-[#f9f6f0] flex-shrink-0 flex items-center justify-center p-1 rounded-sm">
-                     <img
-                        src={item.image || "https://images.unsplash.com/photo-1599643478524-fb66f70a0066?auto=format&fit=crop&w=100&q=80"}
-                        alt={item.name}
-                        className="object-contain max-h-full mix-blend-multiply"
-                      />
+                    <img
+                      src={
+                        item.image ||
+                        "https://images.unsplash.com/photo-1599643478524-fb66f70a0066?auto=format&fit=crop&w=100&q=80"
+                      }
+                      alt={item.name}
+                      className="object-contain max-h-full mix-blend-multiply"
+                    />
                   </div>
-                  {/* Item Details */}
                   <div className="flex-1">
                     <p className="text-[#f4ece4] text-sm font-medium line-clamp-1">{item.name}</p>
-                    <p className="text-[#a89688] text-[10px] uppercase tracking-[0.15em] mt-1">Qty: {item.quantity || 1}</p>
+                    <p className="text-[#a89688] text-[10px] uppercase tracking-[0.15em] mt-1">
+                      Qty: {item.quantity || 1}
+                    </p>
                   </div>
                   <p className="text-[#e4d4c8] text-sm tracking-wider flex-shrink-0">
-                    <span className="text-[9px] uppercase tracking-[0.1em] text-[#a89688] mr-1">Rs.</span>
+                    <span className="text-[9px] uppercase tracking-[0.1em] text-[#a89688] mr-1">
+                      Rs.
+                    </span>
                     {formatPrice(Number(item.price) * (item.quantity || 1))}
                   </p>
                 </div>
@@ -305,24 +472,27 @@ function Checkout() {
             <div className="border-t border-[#2a170e] mt-6 pt-6 mb-8 flex justify-between items-end">
               <p className="text-[12px] uppercase tracking-[0.2em] text-[#f4ece4]">Total</p>
               <p className="text-2xl text-[#c49b76] font-light tracking-wide">
-                <span className="text-[10px] uppercase tracking-[0.1em] text-[#a89688] mr-2">Rs.</span>
+                <span className="text-[10px] uppercase tracking-[0.1em] text-[#a89688] mr-2">
+                  Rs.
+                </span>
                 {formatPrice(total)}
               </p>
             </div>
 
             <button
               onClick={handleCheckout}
+              disabled={submitting}
               className="w-full bg-[#c49b76] text-[#110804] py-4 rounded-full text-[11px] font-medium uppercase tracking-[0.2em] hover:bg-[#b58c66] transition-colors duration-300 flex justify-center items-center gap-2"
             >
-              <FiShoppingBag size={14} /> Place Order
+              {submitting ? <FiLoader className="animate-spin" size={14} /> : <FiShoppingBag size={14} />}
+              {paymentMethod === "razorpay" ? "Pay With Razorpay" : "Place Order"}
             </button>
-            
+
             <p className="text-center text-[#a89688] text-[9px] uppercase tracking-[0.15em] mt-6 leading-relaxed">
-              Payments are secure and encrypted. <br/> Your information is kept private.
+              Payments are secure and encrypted. <br /> Your information is kept private.
             </p>
           </div>
         </div>
-
       </div>
     </div>
   );

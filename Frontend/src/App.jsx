@@ -1,7 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import ProtectedRoute, { UserRoute } from "./Components/protectedRoute"; // ✅ import both
-
 import Navbar from "./Components/Navbar";
 import Home from "./Pages/Home";
 import ProductList from "./Pages/ProductList";
@@ -13,7 +12,6 @@ import Checkout from "./Pages/Checkout";
 import OrderSuccess from "./Pages/OrderSuccess";
 import Profile from "./Pages/Profile";
 import Footer from "./Components/Footer";
-
 import AdminLayout from "./AdminSide/Components2/AdminLayout";
 import Dashboard from "./AdminSide/Pages2/Dashboard";
 import Orders from "./AdminSide/Pages2/Orders";

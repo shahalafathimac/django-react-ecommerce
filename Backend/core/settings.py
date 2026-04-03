@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'users',
     'Cart',
     'orders',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -160,3 +161,7 @@ PASSWORD_RESET_URL = config(
     'PASSWORD_RESET_URL',
     default='http://localhost:5173/reset-password?uid={uid}&token={token}',
 )
+
+
+RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID")
+RAZORPAY_KEY_SECRET = config("RAZORPAY_KEY_SECRET")

@@ -1,14 +1,10 @@
-from decimal import Decimal
-from uuid import uuid4
-from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from Cart.models import Cart
 from core.api import SafeAPIView
-from products.models import Product
 from users.views import IsAdminRole
-from .models import Order, OrderItem
+from .models import Order
 from .serializers import OrderSerializer
+from .services import CheckoutError, create_order_from_checkout
 
 
 class OrderListCreateAPIView(SafeAPIView):
@@ -34,123 +30,31 @@ class OrderListCreateAPIView(SafeAPIView):
         save_address = bool(request.data.get("save_address", False))
         direct_items = request.data.get("items")
 
-        required_fields = ["name", "address", "city", "state", "zip", "phone"]
-        missing_fields = [field for field in required_fields if not str(shipping_info.get(field, "")).strip()]
-        if missing_fields:
-            return Response({"error": f"Missing shipping field: {missing_fields[0]}."}, status=400)
-
-        if payment_method not in {choice for choice, _ in Order.PAYMENT_METHOD_CHOICES}:
-            return Response({"error": "Invalid payment method."}, status=400)
-
-        if payment_method in {"card", "upi"} and not str(payment_reference).strip():
+        if payment_method == "razorpay":
             return Response(
-                {"error": "Payment reference is required for card and UPI payments."},
+                {"error": "Use the Razorpay payment flow to place this order."},
                 status=400,
             )
 
-        cart = None
-        if direct_items:
-            source_items = direct_items
-        else:
-            cart = Cart.objects.prefetch_related("items__product").filter(user=user).first()
-            if not cart or not cart.items.exists():
-                return Response({"error": "Cart is empty."}, status=400)
-            source_items = [
-                {"product_id": item.product_id, "quantity": item.quantity}
-                for item in cart.items.all()
-            ]
-
-        if not isinstance(source_items, list) or not source_items:
-            return Response({"error": "At least one order item is required."}, status=400)
-
-        normalized_items = []
-        for item in source_items:
-            product_id = item.get("product_id") or item.get("id")
-            try:
-                quantity = int(item.get("quantity", 1))
-            except (TypeError, ValueError):
-                return Response({"error": "Invalid item quantity."}, status=400)
-
-            if not product_id:
-                return Response({"error": "Each item must include a product id."}, status=400)
-            if quantity < 1:
-                return Response({"error": "Quantity must be at least 1."}, status=400)
-
-            normalized_items.append({"product_id": product_id, "quantity": quantity})
-
-        with transaction.atomic():
-            order = Order.objects.create(
+        try:
+            order = create_order_from_checkout(
                 user=user,
                 shipping_info=shipping_info,
                 payment_method=payment_method,
-                payment_status="Pending" if payment_method == "cod" else "Paid",
-                transaction_reference=payment_reference or f"TXN-{uuid4().hex[:10].upper()}",
+                payment_reference=payment_reference,
+                save_address=save_address,
+                direct_items=direct_items,
             )
-            total_amount = Decimal("0.00")
-            product_ids = [item["product_id"] for item in normalized_items]
-            products_by_id = {
-                product.id: product
-                for product in Product.objects.select_for_update().filter(pk__in=product_ids)
-            }
+        except CheckoutError as exc:
+            return Response({"error": exc.message}, status=exc.status_code)
 
-            requested_quantities = {}
-            for item in normalized_items:
-                requested_quantities[item["product_id"]] = (
-                    requested_quantities.get(item["product_id"], 0) + item["quantity"]
-                )
-
-            for item in normalized_items:
-                product = products_by_id.get(item["product_id"])
-                if not product:
-                    transaction.set_rollback(True)
-                    return Response({"error": f"Product {item['product_id']} was not found."}, status=404)
-
-            for product_id, requested_quantity in requested_quantities.items():
-                product = products_by_id[product_id]
-                if requested_quantity > product.stock:
-                    transaction.set_rollback(True)
-                    return Response(
-                        {"error": f"Only {product.stock} item(s) available for {product.name}."},
-                        status=400,
-                    )
-
-            order_items = []
-            updated_products = []
-            for item in normalized_items:
-                product = products_by_id[item["product_id"]]
-                line_price = Decimal(str(product.price))
-                order_items.append(
-                    OrderItem(
-                        order=order,
-                        product=product,
-                        quantity=item["quantity"],
-                        price=line_price,
-                    )
-                )
-                total_amount += line_price * item["quantity"]
-
-            for product_id, requested_quantity in requested_quantities.items():
-                product = products_by_id[product_id]
-                product.stock -= requested_quantity
-                updated_products.append(product)
-
-            OrderItem.objects.bulk_create(order_items)
-            Product.objects.bulk_update(updated_products, ["stock"])
-
-            order.total_amount = total_amount
-            order.save(update_fields=["total_amount"])
-
-            if save_address:
-                user.address = shipping_info
-                user.save(update_fields=["address"])
-
-            if cart is not None:
-                cart.items.all().delete()
-
-        return Response({
-            "message": "Order placed successfully.",
-            "order": OrderSerializer(order).data,
-        }, status=201)
+        return Response(
+            {
+                "message": "Order placed successfully.",
+                "order": OrderSerializer(order).data,
+            },
+            status=201,
+        )
 
 
 class AdminOrderListAPIView(SafeAPIView):

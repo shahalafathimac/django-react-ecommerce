@@ -22,6 +22,12 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     shippingInfo = serializers.JSONField(source="shipping_info", read_only=True)
+    shippingFee = serializers.DecimalField(
+        source="shipping_fee",
+        max_digits=10,
+        decimal_places=2,
+        read_only=True,
+    )
     paymentMethod = serializers.CharField(source="payment_method", read_only=True)
     paymentStatus = serializers.CharField(source="payment_status", read_only=True)
     transactionReference = serializers.CharField(source="transaction_reference", read_only=True)
@@ -44,6 +50,7 @@ class OrderSerializer(serializers.ModelSerializer):
             "paymentStatus",
             "transactionReference",
             "shippingInfo",
+            "shippingFee",
             "total_amount",
             "totalAmount",
             "items",

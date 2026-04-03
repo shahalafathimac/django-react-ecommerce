@@ -1,8 +1,13 @@
 import axiosInstance from "./axiosInstance";
+import { clearTokens, getRefreshToken, storeTokens } from "./authStorage";
 
-export const storeAuthData = () => {};
+export const storeAuthData = (data) => {
+  storeTokens(data || {});
+};
 
-export const clearAuthData = () => {};
+export const clearAuthData = () => {
+  clearTokens();
+};
 
 export const ensureCsrfCookie = () => axiosInstance.get("/users/csrf/");
 
@@ -18,7 +23,9 @@ export const registerUser = async (data) => {
 
 export const logoutUser = async () => {
   await ensureCsrfCookie();
-  return axiosInstance.post("/users/logout/", {});
+  return axiosInstance.post("/users/logout/", {
+    refresh: getRefreshToken(),
+  });
 };
 
 export const getProfile = () => axiosInstance.get("/users/profile/");

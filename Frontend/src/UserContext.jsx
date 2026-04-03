@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 
 import { getCart } from "./api/cartApi";
+import { getAccessToken } from "./api/authStorage";
 import {
   clearAuthData,
   getProfile,
@@ -19,6 +20,11 @@ export const UserProvider = ({ children }) => {
 
   const refreshCart = useCallback(async () => {
     try {
+      if (!getAccessToken()) {
+        setCartItems([]);
+        return [];
+      }
+
       const cartResponse = await getCart();
       const items = cartResponse.data.items || [];
       setCartItems(items);
@@ -31,6 +37,12 @@ export const UserProvider = ({ children }) => {
 
   const refreshSession = useCallback(async () => {
     try {
+      if (!getAccessToken()) {
+        setUser(null);
+        setCartItems([]);
+        return null;
+      }
+
       const profileResponse = await getProfile();
       setUser(profileResponse.data);
       return profileResponse.data;
@@ -45,6 +57,13 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     const bootstrap = async () => {
       try {
+        if (!getAccessToken()) {
+          setUser(null);
+          setCartItems([]);
+          setLoading(false);
+          return;
+        }
+
         const profileResponse = await getProfile();
         setUser(profileResponse.data);
 
@@ -77,8 +96,8 @@ export const UserProvider = ({ children }) => {
 
   const register = async (payload) => {
     const response = await registerUser(payload);
-    storeAuthData(response.data);
-    setUser(response.data.user);
+    clearAuthData();
+    setUser(null);
     setCartItems([]);
     return response.data.user;
   };

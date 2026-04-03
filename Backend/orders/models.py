@@ -16,6 +16,7 @@ class Order(models.Model):
     ]
 
     PAYMENT_METHOD_CHOICES = [
+        ("razorpay", "Razorpay"),
         ("card", "Card"),
         ("upi", "UPI"),
         ("cod", "Cash on Delivery"),
@@ -35,6 +36,7 @@ class Order(models.Model):
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default="Pending")
     transaction_reference = models.CharField(max_length=100, blank=True, default="")
     shipping_info = models.JSONField(default=dict, blank=True)
+    shipping_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     def __str__(self):

@@ -7,7 +7,8 @@ import { UserContext } from "../UserContext";
 
 function SignUp() {
   const [user, setUser] = useState({ name: "", email: "", password: "" });
-  const[errorMessage, setErrorMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { register } = useContext(UserContext);
 
@@ -19,11 +20,30 @@ function SignUp() {
     e.preventDefault();
     setErrorMessage("");
 
+    const payload = {
+      name: user.name.trim(),
+      email: user.email.trim().toLowerCase(),
+      password: user.password,
+    };
+
+    if (!payload.name || !payload.email || !payload.password) {
+      setErrorMessage("Please fill in all fields.");
+      return;
+    }
+
+    if (payload.password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters.");
+      return;
+    }
+
     try {
-      await register(user);
-      navigate("/");
+      setIsSubmitting(true);
+      await register(payload);
+      navigate("/login");
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "Something went wrong. Please try again."));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -97,15 +117,18 @@ function SignUp() {
               onChange={handleChange}
               placeholder="••••••••"
               className={inputStyle}
+              minLength={6}
               required
             />
           </div>
 
           <button
             type="submit"
+            disabled={isSubmitting}
             className="w-full mt-4 bg-[#c49b76] text-[#110804] py-4 rounded-full text-[11px] font-medium uppercase tracking-[0.2em] hover:bg-[#b58c66] transition-colors duration-300 flex justify-center items-center gap-2"
           >
-            Create Account <FiArrowRight size={14} />
+            {isSubmitting ? "Creating..." : "Create Account"}
+            {!isSubmitting && <FiArrowRight size={14} />}
           </button>
         </form>
 

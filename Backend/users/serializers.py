@@ -24,6 +24,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'email', 'password', 'address', 'role', 'active']
         read_only_fields = ['id', 'role', 'active']
 
+    def validate_name(self, value):
+        cleaned = value.strip()
+        if not cleaned:
+            raise serializers.ValidationError("Name is required.")
+        return cleaned
+
+    def validate_email(self, value):
+        cleaned = value.strip().lower()
+        if User.objects.filter(email__iexact=cleaned).exists():
+            raise serializers.ValidationError("User already exists!")
+        return cleaned
+
     def create(self, validated_data):
         address_data = validated_data.pop('address', {})
         user = User.objects.create_user(
