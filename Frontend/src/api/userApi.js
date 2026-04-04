@@ -21,6 +21,16 @@ export const registerUser = async (data) => {
   return axiosInstance.post("/users/register/", data);
 };
 
+export const forgotPassword = async (data) => {
+  await ensureCsrfCookie();
+  return axiosInstance.post("/users/forgot-password/", data);
+};
+
+export const resetPassword = async (data) => {
+  await ensureCsrfCookie();
+  return axiosInstance.post("/users/reset-password/", data);
+};
+
 export const logoutUser = async () => {
   await ensureCsrfCookie();
   return axiosInstance.post("/users/logout/", {

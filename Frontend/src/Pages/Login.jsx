@@ -91,9 +91,12 @@ function Login() {
                 Password
               </label>
               {/* Optional: Placeholder for Forgot Password */}
-              <span className="text-[#a89688] text-[9px] uppercase tracking-wider cursor-pointer hover:text-[#c49b76] transition-colors">
+              <Link
+                to="/forgot-password"
+                className="text-[#a89688] text-[9px] uppercase tracking-wider cursor-pointer hover:text-[#c49b76] transition-colors"
+              >
                 Forgot?
-              </span>
+              </Link>
             </div>
             <input
               type="password"

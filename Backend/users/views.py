@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from core.api import SafeAPIView
+from .utils import token_generator
 from .serializers import (
     AdminUserSerializer,
     ChangePasswordSerializer,
@@ -228,32 +229,37 @@ class ForgotPasswordView(SafeAPIView):
         if not serializer.is_valid():
             return self.validation_error(serializer)
 
-        email = serializer.validated_data["email"]
-        user = User.objects.filter(email__iexact=email, active=True).first()
+        email = serializer.validated_data["email"].strip().lower()
+
+        user = User.objects.filter(email__iexact=email).first()
+
+        # 🔐 Security: don't reveal if user exists
         response_data = {
-            "message": "If an account with that email exists, a password reset link has been generated.",
+            "message": "If an account exists, a reset link has been sent."
         }
 
         if not user:
             return Response(response_data)
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
-        token = default_token_generator.make_token(user)
-        reset_url = settings.PASSWORD_RESET_URL.format(uid=uid, token=token)
+        token = token_generator.make_token(user)
+
+        reset_link = settings.PASSWORD_RESET_URL.format(uid=uid, token=token)
 
         send_mail(
-            subject="Reset your password",
-            message=f"Use this link to reset your password: {reset_url}",
+            subject="Reset Password",
+            message=f"Click this link:\n{reset_link}",
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
         )
 
+        # Debug (optional)
         if settings.DEBUG:
-            response_data["reset"] = {
+            response_data["debug"] = {
                 "uid": uid,
                 "token": token,
-                "url": reset_url,
+                "url": reset_link,
             }
 
         return Response(response_data)
@@ -264,22 +270,27 @@ class ResetPasswordView(SafeAPIView):
 
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
+
         if not serializer.is_valid():
             return self.validation_error(serializer)
 
+        uid = serializer.validated_data["uid"]
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
+
         try:
-            user_id = force_str(urlsafe_base64_decode(serializer.validated_data["uid"]))
-            user = User.objects.filter(pk=user_id, active=True).first()
-        except (TypeError, ValueError, OverflowError):
-            user = None
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = User.objects.get(pk=user_id)
+        except:
+            return Response({"error": "Invalid user"}, status=400)
 
-        if not user or not default_token_generator.check_token(user, serializer.validated_data["token"]):
-            return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
+        if not token_generator.check_token(user, token):
+            return Response({"error": "Invalid or expired token"}, status=400)
 
-        user.set_password(serializer.validated_data["new_password"])
+        user.set_password(new_password)
         user.save(update_fields=["password"])
 
-        return Response({"message": "Password reset successful."})
+        return Response({"message": "Password reset successful"})
 
 
 class UserListCreateView(SafeAPIView):

@@ -8,6 +8,8 @@ import ProductDetails from "./Pages/ProductDetails";
 import Cart from "./Pages/Cart";
 import Login from "./Pages/Login";
 import SignUp from "./Pages/SignUp";
+import ForgotPassword from "./Pages/ForgotPassword";
+import ResetPassword from "./Pages/ResetPassword";
 import Checkout from "./Pages/Checkout";
 import OrderSuccess from "./Pages/OrderSuccess";
 import Profile from "./Pages/Profile";
@@ -40,6 +42,8 @@ function App() {
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<SignUp />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password/:uid/:token" element={<ResetPassword />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/ProductList" element={<ProductList />} />
                   <Route path="/product/:id" element={<ProductDetails />} />
