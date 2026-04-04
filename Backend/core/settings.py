@@ -36,9 +36,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework_simplejwt.token_blacklist',
+    'users.apps.UsersConfig',
     'rest_framework',
     'products',
-    'users',
     'Cart',
     'orders',
     'payments',
@@ -75,7 +75,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 
-
+db_host = config('DB_HOST', default='127.0.0.1')
+db_port = config('DB_PORT', default='5433' if db_host in {'127.0.0.1', 'localhost'} else '5432')
 
 DATABASES = {
     'default': {
@@ -83,8 +84,8 @@ DATABASES = {
         'NAME': config('NAME', default=config('POSTGRES_DB', default='ecommerce')),
         'USER': config('USER', default=config('POSTGRES_USER', default='postgres')),
         'PASSWORD': config('PASSWORD', default=config('POSTGRES_PASSWORD', default='postgres')),
-        'HOST': config('HOST', default='db'),
-        'PORT': config('PORT', default='5432'),
+        'HOST': db_host,
+        'PORT': db_port,
     }
 }
 

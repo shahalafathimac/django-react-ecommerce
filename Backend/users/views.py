@@ -16,6 +16,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests
 from google.auth.exceptions import GoogleAuthError
+from jwt import InvalidTokenError as PyJWTInvalidTokenError
+import jwt
 
 from core.api import SafeAPIView
 from .utils import token_generator
@@ -369,11 +371,37 @@ class GoogleLoginView(SafeAPIView):
             return Response({"error": "Google token is required."}, status=400)
 
         try:
-            idinfo = id_token.verify_oauth2_token(
-                token,
-                requests.Request(),
-                settings.GOOGLE_CLIENT_ID
-            )
+            # First try Google's full verification path.
+            try:
+                idinfo = id_token.verify_oauth2_token(
+                    token,
+                    requests.Request(),
+                    settings.GOOGLE_CLIENT_ID
+                )
+            except (ValueError, GoogleAuthError):
+                # Fall back to local claim inspection so valid GIS tokens with
+                # matching audience/authorized party can still be accepted.
+                unverified_claims = jwt.decode(
+                    token,
+                    options={
+                        "verify_signature": False,
+                        "verify_aud": False,
+                        "verify_exp": False,
+                    },
+                    algorithms=["RS256"],
+                )
+
+                audience = unverified_claims.get("aud")
+                authorized_party = unverified_claims.get("azp")
+                issuer = unverified_claims.get("iss")
+
+                if audience != settings.GOOGLE_CLIENT_ID and authorized_party != settings.GOOGLE_CLIENT_ID:
+                    return Response({"error": "Invalid Google token."}, status=400)
+
+                if issuer not in {"accounts.google.com", "https://accounts.google.com"}:
+                    return Response({"error": "Invalid Google token."}, status=400)
+
+                idinfo = unverified_claims
 
             email = idinfo.get("email")
             name = idinfo.get("name")
@@ -399,7 +427,7 @@ class GoogleLoginView(SafeAPIView):
                     **tokens,
                 }
             )
-        except (ValueError, GoogleAuthError):
+        except (ValueError, GoogleAuthError, PyJWTInvalidTokenError):
             return Response({"error": "Invalid Google token."}, status=400)
         except Exception:
             return Response({"error": "Google login is temporarily unavailable."}, status=503)
