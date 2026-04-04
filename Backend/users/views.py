@@ -1,17 +1,22 @@
 from django.contrib.auth import authenticate, get_user_model
-from django.contrib.auth.tokens import default_token_generator
+# from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status
 from rest_framework.permissions import AllowAny, BasePermission, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from google.auth.exceptions import GoogleAuthError
+
 from core.api import SafeAPIView
 from .utils import token_generator
 from .serializers import (
@@ -348,3 +353,53 @@ class UserDetailView(SafeAPIView):
         user = self.get_object(pk)
         user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class GoogleLoginView(SafeAPIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.data.get("token")
+
+        if not settings.GOOGLE_CLIENT_ID:
+            return Response({"error": "Google client ID is not configured."}, status=500)
+
+        if not token:
+            return Response({"error": "Google token is required."}, status=400)
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                settings.GOOGLE_CLIENT_ID
+            )
+
+            email = idinfo.get("email")
+            name = idinfo.get("name")
+            email_verified = idinfo.get("email_verified", False)
+
+            if not email or not email_verified:
+                return Response({"error": "Google account email is not verified."}, status=400)
+
+            user, _created = User.objects.get_or_create(
+                email=email,
+                defaults={"name": name or email.split("@")[0]}
+            )
+
+            if name and user.name != name:
+                user.name = name
+                user.save(update_fields=["name"])
+
+            tokens = get_tokens_for_user(user)
+            return Response(
+                {
+                    "message": "Login successful!",
+                    "user": UserProfileSerializer(user).data,
+                    **tokens,
+                }
+            )
+        except (ValueError, GoogleAuthError):
+            return Response({"error": "Invalid Google token."}, status=400)
+        except Exception:
+            return Response({"error": "Google login is temporarily unavailable."}, status=503)

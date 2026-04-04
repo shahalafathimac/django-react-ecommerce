@@ -1,8 +1,10 @@
 import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiAlertCircle, FiLogIn, FiLoader } from "react-icons/fi";
-
+import { GoogleLogin } from '@react-oauth/google';
 import { getApiErrorMessage } from "../api/apiError";
+import axiosInstance from "../api/axiosInstance";
+import { storeAuthData } from "../api/userApi";
 import { UserContext } from "../UserContext";
 
 function Login() {
@@ -11,7 +13,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const[errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
-  const { login } = useContext(UserContext);
+  const { login, refreshSession } = useContext(UserContext);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -41,6 +43,27 @@ function Login() {
       setLoading(false);
     }
   };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const token = credentialResponse.credential;
+
+    if (!token) {
+      setErrorMsg("Google login failed. Try again.");
+      return;
+    }
+
+    setErrorMsg("");
+
+    try {
+      const response = await axiosInstance.post("/google-login/", { token });
+      storeAuthData(response.data);
+      await refreshSession();
+      navigate("/");
+    } catch (err) {
+      setErrorMsg(getApiErrorMessage(err, "Google login failed. Try again."));
+    }
+  };
+
 
   // Reusable input style
   const inputStyle = "w-full bg-[#110804] text-[#e4d4c8] placeholder-[#a89688]/50 border border-[#2a170e] rounded-sm py-4 px-5 text-sm focus:outline-none focus:border-[#c49b76] transition-colors duration-300";
@@ -124,6 +147,26 @@ function Login() {
             )}
           </button>
         </form>
+
+        <div className="mt-6">
+          <div className="relative flex items-center py-2">
+            <div className="flex-grow border-t border-[#2a170e]"></div>
+            <span className="mx-4 text-[10px] uppercase tracking-[0.2em] text-[#a89688]">
+              Or continue with
+            </span>
+            <div className="flex-grow border-t border-[#2a170e]"></div>
+          </div>
+          <div className="mt-4 flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setErrorMsg("Google login failed. Try again.")}
+              theme="outline"
+              shape="pill"
+              size="large"
+              text="continue_with"
+            />
+          </div>
+        </div>
 
         <div className="mt-10 pt-6 border-t border-[#2a170e] text-center">
           <p className="text-[#a89688] text-sm font-light">

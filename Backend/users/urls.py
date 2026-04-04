@@ -11,6 +11,7 @@ from .views import (
     ChangePasswordView,
     UserListCreateView,
     UserDetailView,
+    GoogleLoginView
 )
 
 urlpatterns = [
@@ -25,4 +26,5 @@ urlpatterns = [
     path('users/token/refresh/', TokenRefreshCookieView.as_view(), name='token_refresh'),
     path('users/', UserListCreateView.as_view(), name='user-list'),
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),
+    path("google-login/", GoogleLoginView.as_view()),
 ]
