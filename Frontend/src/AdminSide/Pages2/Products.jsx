@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FiPlus, FiShoppingBag } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 import { getApiErrorMessage } from "../../api/apiError.js";
 import { addProduct, deleteProductApi, getProducts, updateProduct } from "../../api/productApi.js";
@@ -17,7 +18,7 @@ const Products = () => {
       const response = await getProducts({ page: 1, page_size: 50, search: search || undefined });
       setProducts(response.data.results || []);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      toast.error(getApiErrorMessage(error, "Error fetching products."));
     } finally {
       setLoading(false);
     }
@@ -32,9 +33,10 @@ const Products = () => {
 
     try {
       await deleteProductApi(id);
+      toast.success("Product deleted successfully.");
       fetchProducts();
     } catch (error) {
-      console.error("Error deleting product:", error);
+      toast.error(getApiErrorMessage(error, "Error deleting product."));
     }
   };
 
@@ -61,8 +63,10 @@ const Products = () => {
     try {
       if (editingProduct) {
         await updateProduct(editingProduct.id, productData);
+        toast.success("Product updated successfully.");
       } else {
         await addProduct(productData);
+        toast.success("Product added successfully.");
       }
 
       setShowAddForm(false);
@@ -70,7 +74,7 @@ const Products = () => {
       fetchProducts();
     } catch (error) {
       setFormError(getApiErrorMessage(error, "Error saving product."));
-      console.error("Error saving product:", error);
+      toast.error(getApiErrorMessage(error, "Error saving product."));
     }
   };
 

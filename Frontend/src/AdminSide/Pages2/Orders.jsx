@@ -37,6 +37,7 @@ const Orders = () => {
       setOrders((prev) =>
         prev.map((order) => (order.id === orderId ? response.data : order))
       );
+      toast.success("Order status updated successfully.");
     } catch (error) {
       toast.error(getApiErrorMessage(error, "Error updating status."));
       fetchRealOrders();

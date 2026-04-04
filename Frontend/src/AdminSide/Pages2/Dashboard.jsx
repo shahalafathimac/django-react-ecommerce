@@ -25,6 +25,7 @@ import {
   FiXCircle,
   FiShoppingCart,
 } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 import { getApiErrorMessage } from "../../api/apiError";
 import { getAllOrders } from "../../api/orderApi";
@@ -110,7 +111,7 @@ const Dashboard = () => {
       setRecentOrders(sortedOrders);
       generateChartData(products, allOrders);
     } catch (error) {
-      console.error(getApiErrorMessage(error, "Error fetching dashboard data."));
+      toast.error(getApiErrorMessage(error, "Error fetching dashboard data."));
     } finally {
       setLoading(false);
     }
