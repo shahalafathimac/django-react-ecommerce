@@ -11,8 +11,17 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+import os
 from datetime import timedelta
+
+
+def config(key, default=None, cast=None):
+    value = os.environ.get(key, default)
+    if cast is None or value is None:
+        return value
+    if cast is bool:
+        return str(value).lower() in {'1', 'true', 'yes', 'on'}
+    return cast(value)
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -179,7 +188,5 @@ PASSWORD_RESET_URL = config(
 RAZORPAY_KEY_ID = config("RAZORPAY_KEY_ID")
 RAZORPAY_KEY_SECRET = config("RAZORPAY_KEY_SECRET")
 
-GOOGLE_CLIENT_ID = config(
-    "GOOGLE_CLIENT_ID",
-    default="137816180693-gq3mromtakvjh4rkkostmje6oebk8beu.apps.googleusercontent.com",
-)
+GOOGLE_CLIENT_ID = config("GOOGLE_CLIENT_ID", default="")
+GOOGLE_CLIENT_SECRET = config("GOOGLE_CLIENT_SECRET", default="")

@@ -1,11 +1,8 @@
 from decimal import Decimal
 from uuid import uuid4
-
 from django.db import transaction
-
 from Cart.models import Cart
 from products.models import Product
-
 from .models import Order, OrderItem
 
 SHIPPING_FEE = Decimal("50.00")

@@ -240,7 +240,7 @@ class ForgotPasswordView(SafeAPIView):
 
         user = User.objects.filter(email__iexact=email).first()
 
-        # 🔐 Security: don't reveal if user exists
+        # Security: don't reveal if user exists
         response_data = {
             "message": "If an account exists, a reset link has been sent."
         }
