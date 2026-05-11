@@ -365,7 +365,7 @@ class GoogleLoginView(SafeAPIView):
         token = request.data.get("token")
 
         if not settings.GOOGLE_CLIENT_ID:
-            return Response({"error": "Google client ID is not configured."}, status=500)
+            return Response({"error": "Google client ID is not configured."}, status=400)
 
         if not token:
             return Response({"error": "Google token is required."}, status=400)
@@ -379,8 +379,7 @@ class GoogleLoginView(SafeAPIView):
                     settings.GOOGLE_CLIENT_ID
                 )
             except (ValueError, GoogleAuthError):
-                # Fall back to local claim inspection so valid GIS tokens with
-                # matching audience/authorized party can still be accepted.
+            
                 unverified_claims = jwt.decode(
                     token,
                     options={

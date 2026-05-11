@@ -1,3 +1,4 @@
+version: "3.9"
 
 services:
   db:
@@ -5,15 +6,13 @@ services:
     container_name: ecommerce-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-12345}
-    ports:
-      - "5433:5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -26,9 +25,6 @@ services:
     env_file:
       - ./Backend/.env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-12345}
       DB_HOST: db
       DB_PORT: 5432
     depends_on:
@@ -37,8 +33,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./Backend:/app
-    command: python manage.py runserver 0.0.0.0:8000
+      - static_volume:/app/staticfiles
+    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
 
 volumes:
   postgres_data:
+  static_volume:
